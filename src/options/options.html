@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>刷B站 · 设置</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <h1>刷B站 · 设置</h1>
+  <section>
+    <h2>总开关</h2>
+    <label><input type="checkbox" id="enabled"> 一键启用「刷B站」（关闭后左侧入口不再进入沉浸模式）</label>
+  </section>
+  <section>
+    <h2>界面样式（独立开关）</h2>
+    <label><input type="checkbox" id="desktopSkin"> 桌面版样式：把网页换成 B站 Windows 桌面客户端的观感</label>
+    <p>与「刷B站」沉浸模式互相独立：可以只用桌面样式、只用沉浸模式，或两者同时开启。暗色自动跟随 B站 自身的暗色开关。</p>
+  </section>
+  <section>
+    <h2>播放与弹幕</h2>
+    <label>默认音量 <input type="range" id="volume" min="0" max="1" step="0.05"></label>
+    <label>弹幕字号 <input type="number" id="dmFont" min="12" max="48"></label>
+    <label>弹幕速度（数值越大越快） <input type="number" id="dmSpeed" min="3" max="30"></label>
+    <label>弹幕不透明度 <input type="range" id="dmOpacity" min="0.1" max="1" step="0.05"></label>
+  </section>
+  <section>
+    <h2>行为</h2>
+    <label><input type="checkbox" id="profileGuard"> 画像卫生：不把观看行为上报为感兴趣（推荐保持开启）</label>
+    <label><input type="checkbox" id="allowExplicitLike"> 放行显式操作（点赞/投币/收藏/三连）</label>
+    <label><input type="checkbox" id="suppressLoginPopup"> 抑制未登录登录弹窗</label>
+    <label><input type="checkbox" id="noAutoPause"> 不自动暂停</label>
+    <label><input type="checkbox" id="debug"> 输出滑动诊断日志到控制台（排查「划不动」时打开）</label>
+  </section>
+  <section>
+    <h2>更多（在播放器内）</h2>
+    <p>弹幕显示区域/字号/速度/密度/字体/屏蔽词、字幕、清晰度、编码、视频比例、画面旋转与色彩、宽屏、音量均衡等，都在沉浸模式里的「弹幕设置」（滑杆图标）与「设置」（齿轮图标）面板中，或右键菜单里。</p>
+  </section>
+  <div id="saved">已保存 ✓</div>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html><html lang="zh-CN" class="bdm-skin"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../src/content/desktop-skin.css">
+<style>body{margin:0;font:14px sans-serif}#probe{padding:8px}</style>
+</head><body>
+<div id="probe">hostless</div>
+<script>
+(function () {
+  setTimeout(function () {
+    var cs = getComputedStyle(document.body);
+    var padNoHost = cs.paddingLeft;
+    // 现在插入一个头部容器，再看（:has() 应立刻生效）
+    var bar = document.createElement("div"); bar.className = "bili-header__menu is-zh bili-header__bar"; document.body.appendChild(bar);
+    setTimeout(function () {
+      var padWithHost = getComputedStyle(document.body).paddingLeft;
+      console.log("[宿主自检] 无头部时 padding-left=" + padNoHost + "  有头部后=" + padWithHost);
+      console.log("[宿主自检] " + (padNoHost === "0px" && padWithHost === "200px" ? "PASS：只在有头部时才让出侧栏宽度" : "FAIL"));
+    }, 120);
+  }, 900);
+})();
+</script></body></html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>整屏几何核对</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>html,body{margin:0;background:#141418;overflow:hidden}
+#stage{position:relative;overflow:hidden}
+#m{position:fixed;right:8px;top:8px;z-index:2147483647;color:#7CFC9A;font:12px/1.45 monospace;background:#000d;padding:4px 6px;margin:0;white-space:pre-wrap;max-width:320px}</style></head><body>
+<div id="stage"></div><pre id="m">measuring…</pre>
+<script>window.chrome={storage:{local:{get:function(k,cb){var d={};return cb?(cb(d),undefined):Promise.resolve(d);},set:function(o,cb){return cb?(cb(),undefined):Promise.resolve();}},onChanged:{addListener:function(){}}}};
+window.onerror=function(m,s,l,c){document.getElementById("m").textContent="ERR "+m+" @"+l+":"+c;};</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+function qs(k, dflt){ var m = new RegExp("[?&]"+k+"=([0-9]+)").exec(location.search); return m ? Number(m[1]) : dflt; }
+var W = qs("w", 1389), H = qs("h", 628);
+var FRAME = /[?&]frame=1/.test(location.search);
+function runMeasure(){
+var stage = document.getElementById("stage");
+stage.style.width = W + "px"; stage.style.height = H + "px";
+var item = {
+  bvid: "BV1xx411c7mD", cid: 62131, aid: 2,
+  title: "这是一个非常长的视频标题：用于检查信息块在长标题下会不会挤到右侧操作栏或压住进度条（2024 年最新一期）",
+  owner: { mid: 88, name: "一个名字相当长的UP主名称用来撑宽度", face: "" },
+  stat: { view: 12345678, like: 234567, danmaku: 3456789, reply: 45678, coin: 5678, favorite: 6789, share: 789 },
+  rcmd_reason: "因为你看过「编程」相关视频", pic: ""
+};
+var b = window.__BDM__.ui.buildSlide(item);
+var rootEl = document.createElement("div"); rootEl.className = "bdm-root";
+rootEl.style.position = "relative"; rootEl.style.width = "100%"; rootEl.style.height = "100%";
+rootEl.appendChild(b.root);
+stage.appendChild(rootEl);
+// 用真实数字填充右侧操作栏，检查竖排在矮窗下是否溢出
+b.root.querySelectorAll(".bdm-act-num").forEach(function(n, i){ n.textContent = ["12.3万","5.6万","6789","789","4.5万","","",][i] || n.textContent; });
+b.ctrl.time.textContent = "12:34 / 45:67";
+b.seek.fill.style.width = "42%";
+var R = function(el){ var r = el.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), r: Math.round(r.right), b: Math.round(r.bottom) }; };
+var slide = R(b.root), info = R(b.info), rail = R(b.rail), ctrl = R(b.ctrl.play.parentNode), seek = R(b.seek.track), dmRow = R(b.dmRow);
+var lines = [];
+lines.push("视口=" + W + "x" + H + "  屏=" + slide.w + "x" + slide.h);
+lines.push("信息块 左=" + info.l + " 顶=" + info.t + " 右=" + info.r + " 底=" + info.b + "  (右边界应 < 操作栏左边界 " + rail.l + ")");
+lines.push("操作栏 左=" + rail.l + " 顶=" + rail.t + " 右=" + rail.r + " 底=" + rail.b + "  (底应 < " + H + ")");
+lines.push("控制条 顶=" + ctrl.t + " 底=" + ctrl.b + "   进度条 顶=" + seek.t + " 底=" + seek.b);
+lines.push("发送行 左=" + dmRow.l + " 顶=" + dmRow.t + " 底=" + dmRow.b + " 高=" + dmRow.h + "  (应贴底、矮窗 42px)");
+lines.push("越界：信息块右=" + (info.r > rail.l ? (info.r - rail.l) + "px 压到操作栏" : "无") +
+  " / 操作栏底=" + (rail.b > H ? (rail.b - H) + "px 出屏" : "无") +
+  " / 操作栏顶=" + (rail.t < 0 ? Math.abs(rail.t) + "px 被切" : "无") +
+  " / 控制条底=" + (ctrl.b > H ? (ctrl.b - H) + "px 出屏" : "无") +
+  " / 发送行底=" + (dmRow.b > H ? (dmRow.b - H) + "px 出屏" : "无") +
+  " / 信息块底=" + (info.b > seek.t ? (info.b - seek.t) + "px 压住进度条" : "无"));
+var kids = [];
+b.root.querySelectorAll(".bdm-ctrl-btn, .bdm-dm-input, .bdm-vol-range").forEach(function(el){
+  var r = R(el);
+  var inCtrl = el.parentNode && el.parentNode.classList && el.parentNode.classList.contains("bdm-ctrl-btn");
+  kids.push({ t: r.t, l: r.l, r: r.r, b: r.b, nested: !!inCtrl, name: (el.className || el.tagName) + "[" + r.l + ".." + r.r + "]" });
+});
+var over = kids.filter(function(k){ return k.r > W || k.l < 0; }).length;
+var overlap = 0;
+for (var i = 0; i < kids.length; i++) for (var j = i + 1; j < kids.length; j++) {
+  var a = kids[i], c = kids[j];
+  if (a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b) overlap++;
+}
+lines.push("控制条控件数=" + kids.length + "  横向出界=" + over + "  相互重叠=" + overlap);
+// 把重叠的每一对点名（并说明是否父子嵌套）
+for (var i2 = 0; i2 < kids.length; i2++) for (var j2 = i2 + 1; j2 < kids.length; j2++) {
+  var a2 = kids[i2], c2 = kids[j2];
+  if (a2.l < c2.r && c2.l < a2.r && a2.t < c2.b && c2.t < a2.b) {
+    lines.push("  重叠对：" + a2.name + " 与 " + c2.name + (a2.nested || c2.nested ? "（父子嵌套，非真重叠）" : "（平级！需人工确认）"));
+  }
+}
+function vis(el) {
+  var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+  return (el.className || el.tagName) + "[l=" + Math.round(r.left) + " w=" + Math.round(r.width) + " h=" + Math.round(r.height) +
+    " display=" + cs.display + " opacity=" + cs.opacity + " fill=" + cs.fill + "]";
+}
+var probe = [b.ctrl.play, b.ctrl.next, b.ctrl.time, b.ctrl.cmt, b.ctrl.volBtn, b.root.querySelector(".bdm-vol-range"), b.ctrl.wide, b.ctrl.pip];
+probe.forEach(function (el) { lines.push("  控件 " + vis(el)); });
+b.root.querySelectorAll(".bdm-act svg").forEach(function (s, i) { if (i < 2) lines.push("  操作栏图标 " + i + " " + vis(s)); });
+var sv1 = b.ctrl.play.querySelector("svg"), sv2 = b.ctrl.full.querySelector("svg");
+lines.push("  控制条 svg: play=" + (sv1 ? getComputedStyle(sv1).fill : "无 svg") + " full=" + (sv2 ? getComputedStyle(sv2).fill : "无 svg"));
+lines.push("  继承色: body=" + getComputedStyle(document.body).color + " slide=" + getComputedStyle(b.root).color + " ctrlBar=" + getComputedStyle(b.ctrl.play.parentNode).color + " playBtn=" + getComputedStyle(b.ctrl.play).color);
+var seekLine = b.root.querySelector(".bdm-seek");
+lines.push("  进度条颜色: " + (seekLine ? getComputedStyle(seekLine).backgroundColor : "无"));
+var vr = b.root.querySelector(".bdm-vol-range"), cs = getComputedStyle(vr);
+lines.push("  滑块 computed: position=" + cs.position + " opacity=" + cs.opacity + " visibility=" + cs.visibility + " zIndex=" + cs.zIndex + " pointerEvents=" + cs.pointerEvents);
+var chain = [], el2 = vr;
+while (el2 && chain.length < 5) { var r2 = el2.getBoundingClientRect(), c2 = getComputedStyle(el2);
+  chain.push((el2.className || el2.tagName) + "{l=" + Math.round(r2.left) + " w=" + Math.round(r2.width) + " display=" + c2.display + " pos=" + c2.position + " overflow=" + c2.overflow + " flex=" + c2.flex + "}"); el2 = el2.parentNode; }
+lines.push("  滑块父链: " + chain.join(" < "));
+var wv = b.root.querySelector(".bdm-vol-wrap") || b.ctrl.volBtn;
+lines.push("  音量按钮盒: " + JSON.stringify(b.ctrl.volBtn.getBoundingClientRect().toJSON()));
+lines.push("  宽屏按钮盒: " + JSON.stringify(b.ctrl.wide.getBoundingClientRect().toJSON()));
+lines.push("  滑块盒: " + JSON.stringify(vr.getBoundingClientRect().toJSON()));
+// hover-test：把音量按钮标记为 hover（用真实 :hover 无法脚本触发，这里直接查规则是否存在）
+var volSlide = b.root.querySelector(".bdm-vol-slide");
+var hoverRule = Array.prototype.slice.call(document.styleSheets).some(function (ss) {
+  try { return Array.prototype.slice.call(ss.cssRules).some(function (r) {
+    return r.selectorText && r.selectorText.indexOf("bdm-vol") >= 0 && /hover/.test(r.selectorText); }); } catch (e) { return false; }
+});
+lines.push("矮窗分支 max-height:720px 生效 = " + window.matchMedia("(max-height: 720px)").matches + "   CSS 视口高=" + window.innerHeight + "  窗口高=" + window.outerHeight);
+lines.push("  音量滑块容器 w=" + Math.round(volSlide.getBoundingClientRect().width) + " overflow=" + getComputedStyle(volSlide).overflow);
+lines.push("  CSS 里有 bdm-vol 的 :hover 规则 = " + hoverRule);
+// 详细数值全部走 console（页面上留可见文本会挡住控制条，曾经误导过一次排查）
+lines.forEach(function (L) { console.log("[几何] " + L); });
+document.getElementById("m").textContent = "几何核对完成：详见 console（" + lines.length + " 行）";
+if (window.parent !== window) { try { window.parent.postMessage({ bdmGeo: lines, w: W, h: H }, "*"); } catch (e) {} }
+}
+function startFrame(){
+  var S = Math.min(1, 1270 / W);
+  var f = document.createElement("iframe");
+  f.src = "ui-slide-preview.html?w=" + W + "&h=" + H;
+  f.style.cssText = "width:" + W + "px;height:" + H + "px;border:0;transform:scale(" + S + ");transform-origin:0 0;position:absolute;left:0;top:0";
+  var st = document.getElementById("stage");
+  st.style.width = Math.round(W * S) + "px"; st.style.height = Math.round(H * S) + "px";
+  st.appendChild(f);
+  document.getElementById("m").textContent = "iframe 模式 " + W + "x" + H + "（CSS 视口=iframe 尺寸，媒体查询才准）";
+  window.addEventListener("message", function (e) {
+    if (!e.data || !e.data.bdmGeo) return;
+    e.data.bdmGeo.forEach(function (L) { console.log("[几何 " + e.data.w + "x" + e.data.h + "] " + L); });
+    document.getElementById("m").textContent = "iframe " + e.data.w + "x" + e.data.h + " 完成，" + e.data.bdmGeo.length + " 行（见 console）";
+  });
+}
+if (FRAME) { startFrame(); } else { runMeasure(); }
+</script></body></html>

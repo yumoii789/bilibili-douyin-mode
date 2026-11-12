@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "BiliSwipe"
+  },
+  "extDesc": {
+    "message": "Rebuilds the Bilibili website as a Douyin-style vertical swipe feed while keeping Bilibili's visual style. One-click triple action, right-click video download, clean recommendation profile, and login popup suppression."
+  }
+}

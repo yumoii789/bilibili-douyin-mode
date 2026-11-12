@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>交互预览</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>
+html,body{margin:0;height:100%;background:#141418;overflow:hidden}
+#bar{position:fixed;left:8px;top:6px;z-index:2147483647;display:flex;gap:6px;font:12px/1 system-ui}
+#bar button{background:#2a2a33;color:#ddd;border:1px solid #3d3d47;border-radius:4px;padding:6px 10px;cursor:pointer}
+#bar button:hover{background:#00AEEC;color:#fff}
+</style></head><body>
+<div id="bar">
+  <button id="b-dm">弹幕设置</button>
+  <button id="b-set">播放器设置</button>
+  <button id="b-ctx">右键菜单(贴右)</button>
+</div>
+<script>
+window.chrome = { storage: { local: {
+  get: function (k, cb) { var d = {}; return cb ? (cb(d), undefined) : Promise.resolve(d); },
+  set: function (o, cb) { return cb ? (cb(), undefined) : Promise.resolve(); }
+}, onChanged: { addListener: function () {} } } };
+window.onerror = function (m, s, l, c) { document.title = "ERR " + m + " @" + l; };
+</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+var b, item = { bvid: "BV1xx411c7mD", title: "【4K修复】这是一个较长的视频标题，用于检查换行与省略号的真实表现",
+  owner: { name: "测试UP主" }, stat: { view: 1234567, like: 10000, danmaku: 2000, reply: 9662, coin: 500, favorite: 300, share: 20 }, pic: "" };
+function show(which) {
+  b.dmPanel.show(false); b.setPanel.show(false); b.ctxMenu.close();
+  if (which === "dm") {
+    var p = b.dmPanel, g;
+    p.clear(); p.label("弹幕设置");
+    g = p.group(p.left, "显示区域"); p.radios(g, [{ label: "全屏", val: "full", on: true }, { label: "上半部分" }, { label: "下半部分" }, { label: "1/4屏" }], function () {});
+    g = p.group(p.left, "不透明度"); p.radios(g, [{ label: "100%" }, { label: "75%", on: true }, { label: "50%" }, { label: "25%" }], function () {});
+    g = p.group(p.left, "弹幕字号"); p.radios(g, [{ label: "超小" }, { label: "小" }, { label: "中", on: true }, { label: "大" }, { label: "超大" }], function () {});
+    g = p.group(p.left, "弹幕速度"); p.radios(g, [{ label: "慢" }, { label: "中", on: true }, { label: "快" }, { label: "极快" }], function () {});
+    g = p.group(p.left, "弹幕密度"); p.radios(g, [{ label: "低" }, { label: "中", on: true }, { label: "高" }], function () {});
+    g = p.group(p.left, "弹幕观看屏蔽词"); p.block(g, "输入后回车添加", function () {}); p.words(g, ["剧透", "刷屏"], function () {});
+    g = p.group(p.right, "弹幕字体"); p.radios(g, [{ label: "默认", on: true }, { label: "黑体" }, { label: "宋体" }, { label: "圆体" }], function () {});
+    g = p.group(p.right, "弹幕类型"); p.switches(g, [{ label: "滚动", on: true }, { label: "顶部", on: true }, { label: "底部" }], function () {});
+    p.action("清屏", function () {}); p.action("重置", function () {});
+    p.show(true);
+  } else if (which === "set") {
+    var q = b.setPanel, h;
+    q.clear(); q.label("设置");
+    h = q.group(q.left, "播放设置"); q.switches(h, [{ label: "自动连播", on: true }, { label: "单集循环" }, { label: "镜像画面" }, { label: "右键长按倍速" }], function () {});
+    h = q.group(q.right, "视频比例"); q.radios(h, [{ label: "默认", on: true }, { label: "16:9" }, { label: "4:3" }, { label: "21:9" }, { label: "填充" }], function () {});
+    q.show(true);
+  } else {
+    b.ctxMenu.open(1180, 120, [
+      { label: "循环播放", type: "switch" }, { label: "单集循环", type: "switch" }, { label: "自动连播", type: "switch", on: true },
+      { label: "镜像画面", type: "switch" }, { label: "右键长按倍速", type: "switch" },
+      { label: "视频比例", children: [{ label: "默认", on: true }, { label: "16:9" }, { label: "4:3" }, { label: "21:9" }, { label: "填充" }] },
+      { label: "画面旋转", children: [{ label: "0°", on: true }, { label: "90°" }, { label: "180°" }, { label: "270°" }] },
+      { label: "画面亮度", children: [{ label: "50%" }, { label: "75%" }, { label: "100%", on: true }, { label: "125%" }, { label: "150%" }] },
+      { label: "清屏", onPick: function () {} }, { label: "视频统计信息", onPick: function () {} },
+      { label: "复制视频地址（精准空降）", onPick: function () {} }, { label: "举报 / 反馈", onPick: function () {} }
+    ]);
+  }
+  document.title = "PREVIEW_READY " + which;
+}
+function run() {
+  b = window.__BDM__.ui.buildSlide(item);
+  document.body.appendChild(b.root);
+  b.seek.fill.style.width = "37%"; b.ctrl.time.textContent = "01:23 / 03:45"; b.ctrl.qn.textContent = "1080P"; b.panel.style.display = "none";
+  document.getElementById("b-dm").addEventListener("click", function () { show("dm"); });
+  document.getElementById("b-set").addEventListener("click", function () { show("set"); });
+  document.getElementById("b-ctx").addEventListener("click", function () { show("ctx"); });
+  show("dm");
+}
+run();
+</script></body></html>

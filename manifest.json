@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "version": "0.1.52",
+"minimum_chrome_version": "105",
+  "description": "__MSG_extDesc__",
+  "permissions": [
+    "contextMenus",
+    "downloads",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.hdslb.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "刷B站 设置"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.bilibili.com/*"
+      ],
+      "js": [
+        "src/content/settings.js",
+        "src/content/desktop-skin.js",
+        "src/content/api.js",
+        "src/content/ui.js",
+        "src/content/player.js",
+        "src/content/douyin-mode.js"
+      ],
+      "css": [
+        "src/content/desktop-skin.css",
+        "src/content/douyin-mode.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "default_locale": "zh_CN"
+}

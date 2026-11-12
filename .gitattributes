@@ -1,0 +1,8 @@
+# 统一行尾，避免 Windows 上出现整文件「变了」的噪声 diff
+* text=auto eol=lf
+
+# 二进制（别做行尾转换）
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary

@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>skin-frame</title>
+<style>html,body{margin:0;background:#888}iframe{border:0;display:block;background:#fff}</style></head><body>
+<iframe id="fr"></iframe>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var w = Number(q.get("w") || 1389), h = Number(q.get("h") || 628);
+  var fr = document.getElementById("fr");
+  fr.width = w; fr.height = h;
+  fr.src = "skin-preview-live.html?w=" + w + "&h=" + h + (q.get("dark") ? "&dark=1" : "") + "&v=" + Date.now();
+  window.addEventListener("message", function (e) { if (e.data && e.data.bdmSkin) console.log("[框架 " + w + "x" + h + "] " + e.data.bdmSkin); });
+})();
+</script></body></html>

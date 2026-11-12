@@ -1,0 +1,366 @@
+/* ============================================================
+   刷B站 · 桌面版样式（独立开关：desktopSkin）
+   设计依据：B站 Windows 桌面客户端 asar 逆向令牌
+             （--Ga* 灰阶 / #00AEEC 主色 / #FF6699 强调 / 圆角 4-10px / PingFang SC·HarmonyOS）
+   实现原则：只给 <html> 加一个 bdm-skin 类，所有规则限定在 html.bdm-skin 内；
+             不改动 B站 任何 DOM 结构，关闭即刻完全还原。
+   选择器来源：逆向资料/网页源码/bilibili-home.html 与 bilibili-video.html 的真实类名
+              （bili-video-card ×261 / feed-card / left-entry__item-trigger /
+                video-page-card-small / tag / bili-dialog-m）
+   ============================================================ */
+
+html.bdm-skin {
+  --bdm-blue: #00AEEC;
+  --bdm-blue-dark: #0098D4;
+  --bdm-pink: #FF6699;
+  --bdm-ink: #18191C;
+  --bdm-text: #61666D;
+  --bdm-sub: #9499A0;
+  --bdm-line: #E3E5E7;
+  --bdm-soft: #F1F2F3;
+  --bdm-card: #FFFFFF;
+  --bdm-bg: #F6F7F8;
+  --bdm-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --bdm-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --bdm-r-sm: 6px;
+  --bdm-r-md: 8px;
+  --bdm-r-lg: 10px;
+  --bdm-ft: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+
+/* 暗色跟随 B站 自己的暗色开关（html.bili_dark），不另造一套主题体系 */
+html.bdm-skin.bili_dark {
+  --bdm-ink: #F1F2F3;
+  --bdm-text: #C9CCD0;
+  --bdm-line: rgba(255, 255, 255, 0.1);
+  --bdm-soft: rgba(255, 255, 255, 0.06);
+  --bdm-card: #24272C;
+  --bdm-bg: #18191C;
+  --bdm-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --bdm-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- 1. 排版统一到客户端字族 ---------- */
+html.bdm-skin body,
+html.bdm-skin .bili-header,
+html.bdm-skin .bili-video-card,
+html.bdm-skin .bili-feed-card,
+html.bdm-skin .video-page-card-small { font-family: var(--bdm-ft); }
+
+/* ---------- 2. 顶栏：桌面客户端的扁平条 ---------- */
+html.bdm-skin .bili-header__bar {
+  background: var(--bdm-card);
+  border-bottom: 1px solid var(--bdm-line);
+  box-shadow: none;
+}
+html.bdm-skin .left-entry__item-trigger,
+html.bdm-skin .left-entry .trigger-text {
+  color: var(--bdm-text);
+  border-radius: var(--bdm-r-sm);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+html.bdm-skin .left-entry__item:hover .trigger-text,
+html.bdm-skin .left-entry__item-trigger:hover .trigger-text {
+  color: var(--bdm-blue);
+  background: var(--bdm-soft);
+}
+
+/* ---------- 3. 视频卡片：统一圆角 + 描边 + 悬浮抬升 ---------- */
+html.bdm-skin .bili-video-card__wrap {
+  border-radius: var(--bdm-r-md);
+  background: var(--bdm-card);
+  border: 1px solid var(--bdm-line);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+html.bdm-skin .bili-video-card__wrap:hover {
+  box-shadow: var(--bdm-shadow-hover);
+  border-color: var(--bdm-blue);
+  transform: translateY(-2px);
+}
+html.bdm-skin .bili-video-card__image,
+html.bdm-skin .bili-video-card__image--wrap,
+html.bdm-skin .bili-video-card__cover,
+html.bdm-skin .bili-video-card__mask { border-radius: var(--bdm-r-sm); }
+html.bdm-skin .bili-video-card__info--tit { font-weight: 600; }
+html.bdm-skin .bili-video-card__info--tit:hover,
+html.bdm-skin .bili-video-card__info--author:hover { color: var(--bdm-blue); }
+html.bdm-skin .bili-video-card__info--author,
+html.bdm-skin .bili-video-card__stats--item,
+html.bdm-skin .bili-video-card__stats--text { color: var(--bdm-sub); }
+html.bdm-skin .bili-video-card__stats__duration {
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: var(--bdm-r-sm);
+}
+
+/* ---------- 4. 首页信息流卡片容器 ---------- */
+html.bdm-skin .feed-card,
+html.bdm-skin .bili-feed-card {
+  border-radius: var(--bdm-r-lg);
+  background: var(--bdm-card);
+  border: 1px solid var(--bdm-line);
+  box-shadow: var(--bdm-shadow);
+  transition: box-shadow 0.2s ease;
+}
+html.bdm-skin .feed-card:hover,
+html.bdm-skin .bili-feed-card:hover { box-shadow: var(--bdm-shadow-hover); }
+
+/* ---------- 5. 视频页：右侧推荐卡 / 标签 / 按钮 ---------- */
+html.bdm-skin .video-page-card-small {
+  border-radius: var(--bdm-r-md);
+  border: 1px solid var(--bdm-line);
+  background: var(--bdm-card);
+  padding: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+html.bdm-skin .video-page-card-small:hover {
+  border-color: var(--bdm-blue);
+  box-shadow: var(--bdm-shadow);
+}
+html.bdm-skin .video-page-card-small .pic-box,
+html.bdm-skin .video-page-card-small .pic,
+html.bdm-skin .video-page-card-small .framepreview-box,
+html.bdm-skin .video-page-card-small .video-awesome-img { border-radius: var(--bdm-r-sm); }
+html.bdm-skin .video-page-card-small .upname,
+html.bdm-skin .video-page-card-small .playinfo,
+html.bdm-skin .video-page-card-small .play { color: var(--bdm-sub); }
+html.bdm-skin .tag,
+html.bdm-skin .not-btn-tag,
+html.bdm-skin .ordinary-tag {
+  border-radius: var(--bdm-r-sm);
+  background: var(--bdm-soft);
+  border: 1px solid transparent;
+  color: var(--bdm-text);
+}
+html.bdm-skin .tag:hover,
+html.bdm-skin .tag-link:hover { color: var(--bdm-blue); border-color: var(--bdm-blue); }
+html.bdm-skin .default-btn,
+html.bdm-skin .follow-btn {
+  border-radius: var(--bdm-r-sm) !important;
+  box-shadow: none !important;
+}
+
+/* ---------- 6. 弹窗 ---------- */
+html.bdm-skin .bili-dialog-m {
+  border-radius: var(--bdm-r-lg);
+  border: 1px solid var(--bdm-line);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+}
+
+/* ---------- 7. 细滚动条（桌面客户端观感） ---------- */
+html.bdm-skin ::-webkit-scrollbar { width: 8px; height: 8px; }
+html.bdm-skin ::-webkit-scrollbar-thumb { background: rgba(148, 153, 160, 0.5); border-radius: 4px; }
+html.bdm-skin ::-webkit-scrollbar-thumb:hover { background: rgba(148, 153, 160, 0.8); }
+html.bdm-skin ::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   8. 顶部导航 → 桌面客户端式左侧边栏
+   纯 CSS 重排：不增删 B站 任何节点，关掉样式立即还原。
+   仅在宽窗（≥1100px）启用；窄窗退回上面的扁平顶栏，避免挤压内容。
+   结构依据扒取的真实源码：
+     .bili-header__bar > [.left-entry.menu-left | .center-search-container.menu-center | .right-entry.menu-right]
+     .left-entry > .left-entry-main > .left-entry__item > a.left-entry__item-trigger > .trigger-icon/.trigger-text
+   ============================================================ */
+@media (min-width: 1100px) {
+  html.bdm-skin { --bdm-side-w: 200px; }
+  /* 用 :has() 自己守住：**只有页面真的有那个头部容器时**才给 body 让出侧栏宽度。
+     否则在没有 .bili-header__bar 的 www 页面（帮助页/404/古董界面等）会整体右移 200px、
+     左边留一条空白 —— 而皮肤只匹配 www.bilibili.com，别的站点不受影响（已核 manifest）。 */
+  html.bdm-skin body:has(.bili-header__bar) { padding-left: var(--bdm-side-w); }
+  /* 兜底：万一跑在不支持 :has() 的浏览器上（声明了 minimum_chrome_version=105，但别赌），
+     退回无条件让位 —— 宁可少一层保护，也不能让侧栏压在内容上。 */
+  @supports not selector(:has(*)) {
+    html.bdm-skin body { padding-left: var(--bdm-side-w); }
+  }
+
+  html.bdm-skin .bili-header__bar,
+  html.bdm-skin .bili-header--large .bili-header__bar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: var(--bdm-side-w) !important;
+    /* v0.1.21 修复布局炸裂：原站 .bili-header__bar 自带 min-width:var(--min-width)
+       （宽视口下超 2500px）与 max-width:var(--max-width)，未覆盖时会把 200px
+       侧栏撑成全宽，再叠上 body 的 200px 左移距，主列被盖成一条窄带 */
+    min-width: 0 !important;
+    max-width: var(--bdm-side-w) !important;
+    height: 100vh !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 6px;
+    padding: 14px 12px;
+    background: var(--bdm-card);
+    border-right: 1px solid var(--bdm-line);
+    border-bottom: none;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    z-index: 10001;
+  }
+
+  /* 真渲染快照实测出来的第二个布局缺陷：B站 的 .bili-header 带 min-width（1100px），
+     而侧栏占掉 200px 后可用宽度只剩 1080px → **首页出现 20px 横向滚动条**。
+     A/B 对照证实归属：关掉皮肤时 0px、开着时 20px（scrollWidth 1300 精确等于 .bili-header 的右边界）。
+     `.bili-header__bar` 早就压过 min-width，这个「内容列的头」当时漏了。 */
+  html.bdm-skin .bili-header,
+  html.bdm-skin .bili-header--large { min-width: 0 !important; }
+
+  /* 搜索：桌面客户端把它放在侧栏顶部 */
+  html.bdm-skin .center-search-container.menu-center {
+    order: -1;
+    width: 100%;
+    margin: 0 0 10px;
+    /* 真缺陷修复（靠真渲染快照才看出来）：B站 给这个容器带 min-height（100% 量级），
+       我们把头部改成 100vh 的侧栏后它撑到 675px，**所有导航项被推到 y≈705 视口外**，
+       侧栏看起来是空的。height:auto 压不住 min-height，max-height 可以（CSS 规范里 max 胜 min）。 */
+    height: auto !important;
+    max-height: 56px;
+  }
+  html.bdm-skin .center-search__bar { width: 100%; }
+  html.bdm-skin #nav-searchform {
+    width: 100%;
+    border-radius: var(--bdm-r-sm) !important;
+    border: 1px solid var(--bdm-line);
+    background: var(--bdm-soft);
+  }
+  html.bdm-skin .nav-search-input { font-size: 13px; }
+  html.bdm-skin .search-panel { left: 0 !important; width: 268px; }
+
+  /* 导航项：横排胶囊 → 整行条目（与桌面客户端一致） */
+  html.bdm-skin .left-entry,
+  html.bdm-skin .left-entry-main {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 2px;
+    /* 真渲染实测出来的第三个布局缺陷：B站 的头栏布局给这两个容器**钉了 64px 高**，
+       而 8 个导航项实际占 334px（溢出容器）→ 于是任何**跟随其后的兄弟节点**（我们注入的
+       「刷B站」按钮）会被排在 y≈154，也就是压在导航项中间 —— 这就是「刷B站 插在番剧和直播之间」
+       的根因。修：把高度交还给内容。 */
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  /* 真渲染快照实测：B站 的 64px 行高挂在 item 包裹层上（.left-entry__item / .v-popover-wrap），
+     只压 trigger 没用。两处一起压，行高才会变成桌面客户端的 38~40px（否则 8 项占 528px，侧栏显得空）。 */
+  html.bdm-skin .left-entry__item,
+  html.bdm-skin .v-popover-wrap.left-entry__item { width: 100%; height: 40px !important; min-height: 0 !important; }
+  html.bdm-skin .left-entry__item-trigger {
+    width: 100%;
+    /* 真渲染快照实测：B站 自己的高度（64px）会把这里的 38px 压住，于是「整行条目」的意图没实现，
+       行距拉得很大、侧栏显得空。桌面客户端的行高就是 38~40px，所以这里必须赢。 */
+    height: 40px !important;
+    padding: 0 12px;
+    border-radius: var(--bdm-r-md);
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  html.bdm-skin .trigger-text { font-size: 14px; }
+
+  /* 侧栏图标在白底上看不见 —— 真因不是 fill 被压住，而是 B站 给**图标元素自己**设了 color:#fff
+     （实测 svg.color=rgb(255,255,255)、父节点 a.color=rgb(97,102,109)），而 fill:currentColor
+     取的是**元素自己的 color** → 于是无论怎么改 fill 都还是白的。
+     修法：把图标的 color 收回成跟随行文字色，再让它 fill/stroke 跟随 currentColor（hover 也跟着变）。 */
+  html.bdm-skin body .bili-header__bar .left-entry .left-entry__item a.left-entry__item-trigger svg,
+  html.bdm-skin body .bili-header__bar .left-entry .left-entry__item a.left-entry__item-trigger svg path,
+  html.bdm-skin body .bili-header__bar .left-entry .trigger-icon,
+  html.bdm-skin body .bili-header__bar .left-entry .trigger-icon path {
+    color: inherit !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+  }
+
+  /* 右侧入口（头像/消息/动态/收藏/历史/创作中心）：贴到侧栏底部 */
+  html.bdm-skin .right-entry.menu-right {
+    margin-top: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--bdm-line);
+  }
+
+  /* ============ 完全接管：按桌面客户端重排整个页面（v0.1.52）============ */
+  /* 客户端没有的东西：网页 footer、顶部广告位、装饰分隔线 */
+  html.bdm-skin footer,
+  html.bdm-skin .feed2-footer,
+  html.bdm-skin .bili-feed4 > .bili-video-card__wrap,
+  html.bdm-skin .taper-line,
+  html.bdm-skin .ad-report,
+  html.bdm-skin .palette-button { display: none !important; }
+
+  /* 头部容器改成竖排 + 用 order 重排：客户端是「频道条在上、banner 在下」，
+     而 B站 的 DOM 顺序是 banner 在前 —— 不改顺序的话频道条会掉到 banner 下面（第一版就是这样）。 */
+  html.bdm-skin .bili-header { display: flex !important; flex-direction: column !important; }
+  html.bdm-skin .bili-header__bar { order: 0 !important; }
+  /* 客户端顶栏只有频道 tab；B站 网页右侧那组（专栏/活动/社区中心/直播/课堂/新歌热榜）是网页特有入口，
+     实测它会和我们固定在右上的搜索框重叠 → 隐藏它，把右上角让给搜索。 */
+  /* 频道胶囊限宽：实测胶囊的真实容器是 .channel-items__left < .right-channel-container
+     （[332,668] → 右边界 1000，正好压在右上角 740~980 的搜索框下面）。我前两次把宽度上限加到了
+     .channel-items / .bili-header__channel 上，都不是胶囊的容器 → 当然没用。 */
+  html.bdm-skin .right-channel-container { max-width: calc(100% - 320px) !important; }
+  html.bdm-skin .channel-items__left { max-width: 100% !important; flex-wrap: wrap !important; }
+
+  html.bdm-skin .channel-items__right,
+  html.bdm-skin .channel-link__right { display: none !important; }
+
+  html.bdm-skin .bili-header__channel { order: 1 !important; }
+  html.bdm-skin .bili-header__banner { order: 2 !important; }
+
+  /* 顶部：频道块（B站 现在是「图标行 + 胶囊行」两行，客户端顶部同样是两行）——**不强制高度**，
+     第一版我硬压成 56px，结果两行内容互相挤、还把胶囊压到搜索框底下（截图里能看到）。 */
+  html.bdm-skin .bili-header__channel {
+    /* 这里原来是 sticky，滚动检查实测**吸不住**：sticky 的粘性范围被父容器限制，
+       父级 .bili-header 只有 ~350px 高，视口 628 → 一滚过父容器底部它就被顶走（top 实测 -34）。
+       改成与侧栏/搜索一致的 fixed，高度由内容决定。 */
+    position: fixed !important; top: 0 !important;
+    left: var(--bdm-side-w) !important; right: 0 !important;
+    margin: 0 !important; padding: 10px 280px 10px 20px !important;   /* 右侧给固定的搜索框留位 */
+    height: auto !important; min-height: 56px !important;
+    background: var(--bdm-card) !important; border-bottom: 1px solid var(--bdm-line);
+    box-shadow: none !important; z-index: 10000;
+    overflow: visible !important;
+  }
+  /* 搜索框：从侧栏搬到顶部工具条右侧（客户端就是这样） */
+  html.bdm-skin .center-search-container.menu-center {
+    position: fixed !important; top: 8px !important; right: 260px !important; left: auto !important;
+    width: 200px !important; height: 40px !important; max-height: 40px !important; margin: 0 !important;
+    order: 0 !important; z-index: 10001;
+  }
+  /* 搜索下拉面板：实测容器被我改成 position:fixed + max-height:40px 后，面板**没有被裁**
+     （容器 overflow 仍是 visible，面板落在搜索框正下方）—— 但宽度只有 200px（跟着容器），
+     补到客户端那种宽度，并给它卡片感。 */
+  html.bdm-skin .search-panel {
+    min-width: 268px !important;
+    border-radius: var(--bdm-r-lg, 8px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  /* 用户区：留在**侧栏底部**（实测它 532px 宽，硬塞到右上角会和频道胶囊叠上；
+     客户端的头像区也只有头像+少量图标，B站 网页这坨比客户端宽得多）。 */
+  /* 内容列：给固定工具条让出高度；banner 收成客户端那种圆角大图 */
+  /* 频道条改成 fixed 后要给内容让出它的高度；高度随宽度变化（胶囊会换行），所以由脚本量出来写进
+     --bdm-channel-h；没有频道条的页面（视频页等）不套这条（:has() 守住）。 */
+  html.bdm-skin body:has(.bili-header__channel) { padding-top: var(--bdm-channel-h, 92px); }
+  html.bdm-skin .bili-header__banner {
+    height: 240px !important; margin: 16px 0 20px !important;
+    border-radius: var(--bdm-r-lg, 8px); overflow: hidden !important;
+  }
+
+  /* B站在视频页等场景会出现全宽吸顶迷你条，别让它盖住侧栏 */
+  html.bdm-skin .mini-header { left: var(--bdm-side-w) !important; }
+
+  /* 「刷B站」入口在侧栏里与其它导航项同形同级 */
+  html.bdm-skin .left-entry > #bdm-nav-btn {
+    width: 100%;
+    height: 40px;
+    margin: 2px 0 0;
+    padding: 0 12px;
+    display: flex;          /* 与其它导航行同形：图标 + 文字、左对齐、行高一致 */
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-start;
+    border-radius: var(--bdm-r-md);
+    font-size: 14px;
+  }
+}

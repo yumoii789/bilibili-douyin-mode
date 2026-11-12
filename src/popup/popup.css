@@ -1,0 +1,14 @@
+body{width:280px;margin:0;font:13px/1.6 "PingFang SC","HarmonyOS_Regular","Microsoft YaHei",sans-serif;color:#18191C;background:#fff}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#00AEEC;color:#fff}
+.logo{font-size:15px;font-weight:600;letter-spacing:1px}
+.switch{position:relative;display:inline-block;width:36px;height:20px}
+.switch input{display:none}
+.switch span{position:absolute;inset:0;background:rgba(255,255,255,.4);border-radius:10px;transition:.2s}
+.switch span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+span{background:#FF6699}
+.switch input:checked+span::after{transform:translateX(16px)}
+main{padding:10px 14px 14px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+.hint{font-size:11px;color:#9499A0;background:#F6F7F8;border-radius:6px;padding:6px 8px;margin-top:4px}
+button{width:100%;margin-top:10px;padding:7px 0;border:1px solid #E3E5E7;border-radius:6px;background:#fff;color:#61666D;cursor:pointer}
+button:hover{color:#00AEEC;border-color:#00AEEC}

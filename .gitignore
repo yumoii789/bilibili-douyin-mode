@@ -1,0 +1,19 @@
+# ---- 不入库：B站 的页面/资源快照与逆向资料（版权 + 体积；README 有说明）
+逆向资料/
+
+# ---- 不入库：由抓取快照生成的预览页（含 B站 页面结构；可用 test/make-skin-preview.mjs 本地重新生成）
+test/skin-preview-live.html
+test/skin-preview.html
+test/skin-preview-video.html
+test/bili-overlay-preview.html
+
+# ---- 系统与编辑器
+Thumbs.db
+.DS_Store
+desktop.ini
+*.log
+*.tmp
+
+# ---- 本地探针（一次性排查用）
+test/probe-*.html
+test/gen-*.html

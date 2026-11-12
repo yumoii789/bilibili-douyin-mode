@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span class="logo">刷B站</span>
+    <label class="switch"><input type="checkbox" id="enabled"><span></span></label>
+  </header>
+  <main>
+    <label class="row"><span>桌面版样式（独立）</span><input type="checkbox" id="desktopSkin"></label>
+    <div class="hint">桌面版样式：把网页换成 B站 Windows 桌面客户端的观感（配色/圆角/字体/卡片/暗色跟随）。它与上面的刷B站沉浸模式<b>互相独立</b>，可单独开关。</div>
+    <label class="row"><span>弹幕</span><input type="checkbox" id="dmEnabled"></label>
+    <label class="row"><span>自动播放下一个</span><input type="checkbox" id="autoplayNext"></label>
+    <label class="row"><span>抑制未登录弹窗</span><input type="checkbox" id="suppressLoginPopup"></label>
+    <label class="row"><span>不自动暂停</span><input type="checkbox" id="noAutoPause"></label>
+    <label class="row"><span>画像卫生（不上报观看）</span><input type="checkbox" id="profileGuard"></label>
+    <div class="hint">画像卫生开启时，观看与滑动不产生任何历史/推荐上报；点赞、投币、收藏、三连等你的显式操作不受影响。</div>
+    <button id="openOptions">更多设置…</button>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

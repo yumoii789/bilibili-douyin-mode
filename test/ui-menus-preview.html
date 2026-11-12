@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>菜单版式 / 闲置淡出 视觉核对</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>
+html,body{margin:0;height:100%;background:#0f0f13;overflow:hidden}
+#bar{position:fixed;left:8px;top:6px;z-index:2147483647;display:flex;gap:6px;font:12px/1 system-ui}
+#bar button{background:#2a2a33;color:#ddd;border:1px solid #3d3d47;border-radius:4px;padding:6px 10px;cursor:pointer}
+#bar button:hover{background:#00AEEC;color:#fff}
+/* 仅为核对「子菜单浮出」而强制展开（真实交互是 hover 展开） */
+.force-sub .bdm-ctx-sub{display:block !important}
+</style></head><body>
+<div id="bar"><button id="b1">状态A：画质/字幕菜单</button><button id="b2">状态B：闲置淡出+右键菜单</button></div>
+<script>window.chrome={storage:{local:{get:function(k,cb){var d={};return cb?(cb(d),undefined):Promise.resolve(d);},set:function(o,cb){return cb?(cb(),undefined):Promise.resolve();}},onChanged:{addListener:function(){}}}};
+window.onerror=function(m,s,l,c){document.title="ERR "+m+" @"+l+":"+c;};</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+var ui=window.__BDM__.ui, b, rootEl;
+function menu(slide, x, y, items){
+  var m=ui.el("div","bdm-menu",slide); m.style.left=x+"px"; m.style.right="auto"; m.style.top=y+"px"; m.style.bottom="auto";
+  items.forEach(function(it){
+    var r=ui.el("div","bdm-menu-item"+(it.on?" bdm-menu-on":"")+(it.badge?" bdm-menu-locked":""),m);
+    ui.el("span","bdm-menu-label",r).textContent=it.label;
+    if(it.badge) ui.el("span","bdm-menu-badge",r).textContent=it.badge;
+  });
+  return m;
+}
+function stateA(){
+  document.querySelectorAll(".bdm-menu").forEach(function(n){n.remove();});
+  menu(b.root, 900, 300, [
+    {label:"4K", badge:"需登录"},{label:"1080P+", badge:"大会员"},
+    {label:"1080P", on:true},{label:"720P"},{label:"480P"},{label:"360P"}
+  ]);
+  menu(b.root, 620, 300, [{label:"中文（自动生成）", on:true},{label:"英文（自动生成）"},{label:"关闭"}]);
+  document.title="STATE_A";
+}
+function stateB(){
+  document.querySelectorAll(".bdm-menu").forEach(function(n){n.remove();});
+  rootEl.classList.add("bdm-idle");                       // 模拟 3 秒无输入
+  var m=b.ctxMenu; m.open(1200, 150, [
+    {label:"循环播放", type:"switch"},{label:"自动连播", type:"switch", on:true},
+    {label:"视频比例", children:[{label:"默认",on:true},{label:"16:9"},{label:"4:3"}]},
+    {label:"画面旋转", children:[{label:"0°",on:true},{label:"90°"}]},
+    {label:"清屏", onPick:function(){}},{label:"视频统计信息", onPick:function(){}}
+  ]);
+  m.root.classList.add("force-sub");                      // 强制展开子菜单以便核对
+  document.title="STATE_B";
+}
+function run(){
+  var item={bvid:"BV1xx411c7mD",title:"菜单版式核对",owner:{name:"UP"},stat:{view:12345,like:100,danmaku:50,reply:20},pic:""};
+  rootEl=document.createElement("div"); rootEl.className="bdm-root"; document.body.appendChild(rootEl);
+  b=ui.buildSlide(item); rootEl.appendChild(b.root);
+  b.seek.fill.style.width="37%"; b.ctrl.time.textContent="01:23 / 03:45"; b.ctrl.qn.textContent="1080P"; b.panel.style.display="none";
+  document.getElementById("b1").addEventListener("click", stateA);
+  document.getElementById("b2").addEventListener("click", stateB);
+  stateA();
+}
+run();
+</script></body></html>

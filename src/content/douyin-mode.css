@@ -1,0 +1,1026 @@
+/* ============================================================
+   刷B站 · 抖音式竖屏沉浸模式  v0.1.0
+   设计基线：B站视觉令牌（#00AEEC 蓝 / #FF6699 粉 / #18191C 墨）
+   × 抖音结构（全屏滚动吸附 + 右侧操作栏 + 左下信息层）
+   ============================================================ */
+
+/* ---------- 1. 全屏根容器（滚动吸附，暗场） ---------- */
+#bdm-root, .bdm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  background: #000;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+#bdm-root::-webkit-scrollbar, .bdm-root::-webkit-scrollbar { width: 0; height: 0; }
+#bdm-root, .bdm-root { scrollbar-width: none; }
+
+/* ---------- 2. 单屏 ---------- */
+.bdm-slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background: #000;
+  overflow: hidden;
+}
+
+/* 底部渐隐遮罩（抖音式）：保证信息层与操作栏压在亮画面上依然可读 */
+.bdm-slide::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- 3. 播放器与弹幕 ---------- */
+.bdm-player {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bdm-video-area { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }   /* 居中：选固定比例时元素宽高是 auto，需要容器居中 */
+.bdm-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.bdm-dmlayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 66%;              /* 加高是为了给底部固定弹幕留出落点（原先 42% 塞不下） */
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;               /* 必须高于 .bdm-slide::after 的底部遮罩，否则弹幕会被压暗 */
+}
+.bdm-dm-fixed {
+  left: 50% !important;
+  white-space: nowrap;
+  transition: none !important;
+}
+.bdm-dm-adv { transition: none !important; }
+.bdm-dm {
+  position: absolute;
+  left: 100%;
+  white-space: nowrap;
+  will-change: transform;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- 4. 右侧操作栏（抖音式竖排） ---------- */
+.bdm-rail {
+  position: absolute;
+  right: 12px;
+  bottom: 136px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.bdm-act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s ease, color 0.18s ease;
+  font-size: 26px;
+  line-height: 1;
+}
+.bdm-act:hover { transform: scale(1.1); }
+.bdm-act-num {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  /* 与信息块同一套可读性兜底：它同样压在画面上，12px 的白字遇到亮画面会糊。
+     图标不加（实心字形本身就厚），只给数字描边 —— 与 B站/Douyin 的做法一致的克制。 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.bdm-act-on { color: #FF6699; }
+.bdm-act-on .bdm-act-num { color: #FF6699; }
+.bdm-btn-triple {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #FF6699, #FB7299);
+  box-shadow: 0 2px 10px rgba(255, 102, 153, 0.4);
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+.bdm-btn-triple:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.bdm-btn-triple:active { transform: scale(0.96); }
+
+/* 图标必须显式定尺与填色：内联 SVG 默认尺寸 300×150、默认填充黑色，
+   在暗场视频上等于「只有数字没有图标」——这正是「UI 简陋」的主因 */
+.bdm-root .bdm-act svg,
+#bdm-root .bdm-act svg {
+  width: 34px;
+  height: 34px;
+  fill: #FFFFFF;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65));
+}
+.bdm-root .bdm-act-on svg,
+#bdm-root .bdm-act-on svg { fill: #FF6699; filter: none; }
+.bdm-root .bdm-btn-triple svg,
+#bdm-root .bdm-btn-triple svg { width: 20px; height: 20px; fill: #FFFFFF; filter: none; }
+
+/* ---------- 5. 左下信息层 ---------- */
+.bdm-info {
+  position: absolute;
+  left: 20px;
+  bottom: 136px;
+  z-index: 3;
+  max-width: 58%;
+  color: #fff;
+}
+.bdm-info-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bdm-face {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  object-fit: cover;
+  background: #00AEEC;
+  flex-shrink: 0;
+}
+.bdm-upname {
+  font-size: 15px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.bdm-info-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0 0 6px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+.bdm-info-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- 13. 抖音网页版布局：标题收展 / 合集 / 评论面板 / 底部控制条 ---------- */
+.bdm-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 合集徽标（左下信息块内，点击弹列表） */
+.bdm-season {
+  display: inline-flex;
+  align-items: center;
+  margin: 2px 0 8px;
+  max-width: 100%;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.bdm-season:hover { background: rgba(255, 255, 255, 0.24); }
+.bdm-season-list {
+  position: absolute;
+  left: 20px;
+  bottom: 150px;
+  width: 380px;
+  max-height: 58%;
+  background: rgba(18, 18, 24, 0.96);
+  border-radius: 12px;
+  z-index: 9;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.bdm-season-head {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bdm-season-body {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.bdm-season-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.bdm-season-item:hover { background: rgba(255, 255, 255, 0.08); }
+.bdm-season-cur { color: #00AEEC; }
+
+/* 评论面板（右侧深色圆角；只读 + 底部「去B站写评论」） */
+.bdm-panel {
+  position: absolute;
+  top: 20px;
+  bottom: 112px;            /* 评论面板底边也不压进度条 */
+  right: 64px;
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(18, 18, 24, 0.95);
+  border-radius: 12px;
+  z-index: 8;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.bdm-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bdm-panel-title { font-size: 15px; font-weight: 600; color: #fff; }
+.bdm-panel-close { font-size: 12px; color: rgba(255, 255, 255, 0.5); cursor: pointer; }
+.bdm-panel-close:hover { color: #fff; }
+.bdm-panel-body { flex: 1; overflow-y: auto; padding: 2px 16px; }
+.bdm-panel-foot {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #00AEEC;
+  text-align: center;
+  cursor: pointer;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bdm-panel-foot:hover { filter: brightness(1.2); }
+.bdm-cmt {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.bdm-cmt-face {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #2a2a33;
+  object-fit: cover;
+}
+.bdm-cmt-col { flex: 1; min-width: 0; }
+.bdm-cmt-name { font-size: 12px; color: rgba(255, 255, 255, 0.55); }
+.bdm-cmt-text {
+  margin: 3px 0 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bdm-cmt-meta { font-size: 11px; color: rgba(255, 255, 255, 0.4); }
+.bdm-cmt-empty {
+  padding: 26px 0;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.bdm-cmt-more {
+  padding: 14px 0 18px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.bdm-cmt-more:hover { color: #fff; }
+
+/* 底部可拖拽进度条 + B站 桌面版控制条（1:1：左 播放·下一集·时间 / 中 弹幕条 / 右 评论·画质·倍速·音量·全屏） */
+.bdm-seek {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 88px;              /* 发送行 46 + 控制条 35 + 间隔 */
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 6;
+  transition: opacity 0.25s;
+}
+.bdm-seek-track {
+  position: relative;
+  width: 100%;
+  height: 4px;               /* B站 实测：bpx-player-progress = 4px */
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: height 0.12s;
+}
+.bdm-seek:hover .bdm-seek-track { height: 6px; }
+.bdm-seek-fill {
+  display: block;
+  position: relative;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: #00AEEC;
+}
+/* 悬停圆形游标：B站 桌面版同款 */
+.bdm-seek:hover .bdm-seek-fill::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+.bdm-ctrl {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 46px;              /* 让位给下方 46px 的弹幕发送行 */
+  height: 35px;              /* B站 实测：bpx-player-control-bottom = 35px */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 6;
+  transition: opacity 0.25s;
+}
+.bdm-ctrl-left, .bdm-ctrl-right {
+  display: flex;
+  align-items: center;
+  gap: 0;                    /* B站 实测：右段按钮 36×22 互相紧邻，间距 0 */
+  min-width: 0;
+}
+.bdm-ctrl-btn {
+  box-sizing: border-box;    /* B站 的 36×22 是边框盒；content-box 下 min-width 会被再加 12px 内边距 */
+  height: 22px;              /* B站 实测：bpx-player-ctrl-btn = 36×22 */
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  font-size: 13px;
+  color: #fff;
+  opacity: 0.9;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+.bdm-ctrl-btn:hover { opacity: 1; background: rgba(255, 255, 255, 0.14); }
+.bdm-ctrl-btn.bdm-sending { opacity: 0.45; pointer-events: none; }   /* 发送中：变暗且不吃点击 */
+.bdm-act.bdm-sending { opacity: 0.45; pointer-events: none; }        /* 右栏写操作提交中：同上 */
+.bdm-slide .bdm-ctrl-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.bdm-btn-play svg { width: 20px; height: 20px; }
+.bdm-time {
+  margin: 0 8px 0 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+/* 弹幕发送行：B站 实测 bpx-player-sending-area = 46px —— **独立一行**，位于控制条下方。
+   左 弹幕开关 + 弹幕设置（实测 x=143/179，都在左侧）、中 输入框、右 发送按钮 */
+.bdm-dm-row {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 6;
+  transition: opacity 0.25s;
+}
+.bdm-dm-row-left, .bdm-dm-row-right { display: flex; align-items: center; gap: 0; }
+.bdm-online { color: rgba(255, 255, 255, 0.75); font-size: 12px; margin-right: 10px; white-space: nowrap; }
+.bdm-dm-etq { color: rgba(255, 255, 255, 0.75); font-size: 12px; margin-right: 10px; cursor: pointer; white-space: nowrap; }
+.bdm-dm-etq:hover { color: #fff; }
+.bdm-dm-row .bdm-dm-input { flex: 1 1 auto; max-width: 520px; margin: 0 10px; height: 32px; border-radius: 16px; }
+.bdm-dm-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 13px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+  cursor: text;
+  transition: background-color 0.15s;
+}
+.bdm-dm-input::placeholder { color: rgba(255, 255, 255, 0.6); }
+.bdm-dm-input:hover { background: rgba(255, 255, 255, 0.24); }
+.bdm-dm-input:focus {
+  background: rgba(0, 0, 0, 0.5);
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+.bdm-audio { display: none; }   /* DASH 音轨：只出声不占位 */
+/* 字幕层：白字 + 重描边（B站 原生字幕观感），不吃鼠标事件 */
+.bdm-sub {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 9%;
+  z-index: 4;
+  display: none;
+  text-align: center;
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 4px #000, 0 1px 2px rgba(0, 0, 0, 0.9),
+    1px 0 2px rgba(0, 0, 0, 0.9), -1px 0 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  word-break: break-word;
+}
+.bdm-vol { display: flex; align-items: center; }
+.bdm-vol-slide { width: 0; overflow: hidden; transition: width 0.15s; }
+.bdm-vol:hover .bdm-vol-slide { width: 72px; }
+.bdm-vol-range { width: 66px; accent-color: #00AEEC; cursor: pointer; }
+.bdm-btn-dm { color: rgba(255, 255, 255, 0.45); }
+.bdm-btn-dm.bdm-on { color: #fff; }
+
+/* 闲置淡出：正在播放且 3 秒无输入时隐藏控制条与光标（B站 桌面版同款） */
+.bdm-slide::after { transition: opacity 0.25s; }
+.bdm-root.bdm-idle { cursor: none; }
+.bdm-root.bdm-idle .bdm-ctrl,
+.bdm-root.bdm-idle .bdm-dm-row,
+.bdm-root.bdm-idle .bdm-seek { opacity: 0; pointer-events: none; }
+.bdm-root.bdm-idle .bdm-slide::after { opacity: 0; }
+
+/* 画质 / 倍速弹出菜单（控制条上方右侧） */
+.bdm-menu {
+  position: absolute;
+  right: 24px;
+  bottom: 112px;            /* 同上：不再压在发送行/控制条上 */
+  min-width: 128px;
+  padding: 5px 0;
+  background: rgba(18, 18, 24, 0.96);
+  border-radius: 10px;
+  z-index: 10;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.bdm-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+.bdm-menu-item:hover { background: rgba(255, 255, 255, 0.08); }
+.bdm-menu-on { color: #00AEEC; }
+.bdm-menu-label { flex: 1 1 auto; }
+.bdm-menu-locked { color: rgba(255, 255, 255, 0.6); }   /* 需登录 / 大会员档位：如实标注 */
+.bdm-menu-badge {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: #FF6699;
+  border: 1px solid rgba(255, 102, 153, 0.6);
+  border-radius: 3px;
+}
+
+/* 视频统计信息（右键菜单入口） */
+.bdm-stats {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 14;
+  min-width: 186px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 6px;
+  font: 12px/1.7 ui-monospace, Menlo, Consolas, monospace;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+.bdm-stats-row { display: flex; justify-content: space-between; gap: 14px; }
+.bdm-stats-k { color: rgba(255, 255, 255, 0.55); }
+
+/* 右键菜单：结构与配色照搬 B站 bpx-player-contextmenu */
+.bdm-ctx {
+  position: fixed;
+  z-index: 2147483002;
+  min-width: 188px;
+  padding: 5px 0;
+  background: rgba(21, 21, 25, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: default;
+  user-select: none;
+}
+.bdm-ctx-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bdm-ctx-item:hover { background: rgba(0, 174, 236, 0.85); color: #fff; }
+.bdm-ctx-label { flex: 1 1 auto; }
+.bdm-ctx-tick { flex: 0 0 auto; color: #00AEEC; }
+.bdm-ctx-item:hover .bdm-ctx-tick { color: #fff; }
+.bdm-ctx-tick.bdm-on { font-weight: 700; }
+.bdm-ctx-arrow { flex: 0 0 auto; color: rgba(255, 255, 255, 0.55); }
+.bdm-ctx-sub {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -5px;
+  min-width: 120px;
+  padding: 5px 0;
+  background: rgba(21, 21, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+.bdm-ctx-has-sub:hover .bdm-ctx-sub { display: block; }
+.bdm-ctx-flip .bdm-ctx-sub { left: auto; right: 100%; }   /* 靠右时子菜单向左展开 */
+.bdm-ctx-on .bdm-ctx-label { color: #00AEEC; }
+.bdm-ctx-on:hover .bdm-ctx-label { color: #fff; }
+
+/* 设置面板（弹幕设置 / 播放器设置）：结构与控件样式照搬 B站 双栏面板 */
+.bdm-settings {
+  position: absolute;
+  bottom: 112px;            /* 两行底栏(46+35)+进度条(88..104) 之上 */
+  z-index: 12;
+  /* 矮窗（用户实际 1389×628）下面板内容会超过可用高度：限制高度并内部滚动，而不是被裁掉顶部 */
+  max-height: calc(100% - 178px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  width: 452px;
+  padding: 10px 0 0;
+  background: rgba(18, 18, 24, 0.96);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.bdm-dm-settings { left: 50%; transform: translateX(-50%); }   /* 弹幕设置悬在弹幕条正上方 */
+.bdm-set-settings { right: 24px; width: 252px; }               /* 播放器设置贴右侧齿轮 */
+.bdm-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 8px;
+  font-size: 14px;
+}
+.bdm-settings-x { cursor: pointer; font-size: 16px; line-height: 1; color: rgba(255, 255, 255, 0.6); }
+.bdm-settings-x:hover { color: #fff; }
+.bdm-settings-cols { display: flex; gap: 10px; padding: 0 14px; }
+.bdm-settings-col { flex: 1 1 0; min-width: 0; }
+.bdm-set-group { margin-bottom: 10px; }
+.bdm-set-title { margin-bottom: 5px; font-size: 12px; color: rgba(255, 255, 255, 0.55); }
+.bdm-set-radios { display: flex; flex-wrap: wrap; gap: 6px; }
+.bdm-set-radio, .bdm-set-switch {
+  padding: 2px 9px;
+  font-size: 12px;
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+.bdm-set-radio:hover, .bdm-set-switch:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.bdm-set-radio.bdm-on, .bdm-set-switch.bdm-on { background: #00AEEC; color: #fff; }
+.bdm-set-block { display: flex; align-items: center; gap: 6px; }
+.bdm-set-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+}
+.bdm-set-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.bdm-set-add { flex: 0 0 auto; padding: 2px 8px; font-size: 12px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); cursor: pointer; }
+.bdm-set-add:hover { background: #00AEEC; }
+.bdm-set-words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.bdm-set-word { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; font-size: 12px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); }
+.bdm-set-word-x { cursor: pointer; color: rgba(255, 255, 255, 0.55); }
+.bdm-set-word-x:hover { color: #FF6699; }
+.bdm-set-empty { font-size: 12px; color: rgba(255, 255, 255, 0.35); }
+.bdm-settings-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.bdm-set-btn { padding: 3px 12px; font-size: 12px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); cursor: pointer; }
+.bdm-set-btn:hover { background: #00AEEC; }
+
+/* 面板 / 合集列表滚动条 */
+.bdm-panel-body::-webkit-scrollbar,
+.bdm-settings::-webkit-scrollbar,
+.bdm-season-body::-webkit-scrollbar { width: 4px; }
+.bdm-panel-body::-webkit-scrollbar-thumb,
+.bdm-settings::-webkit-scrollbar-thumb,
+.bdm-season-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* 退出键：此前只给了字号与颜色、没有定位，于是它作为滚动内容排在所有屏之后，永远看不见 */
+.bdm-root .bdm-close,
+#bdm-root .bdm-close {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 6;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: background 0.15s ease;
+}
+.bdm-root .bdm-close:hover,
+#bdm-root .bdm-close:hover { background: #00AEEC; color: #FFFFFF; }
+
+/* ---------- 7. 加载 / 特殊视频降级 / 提示 ---------- */
+.bdm-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  letter-spacing: 2px;
+  z-index: 2;
+  animation: bdmPulse 1.4s ease-in-out infinite;
+}
+.bdm-degrade {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  text-align: center;
+  color: #fff;
+  max-width: 320px;
+  padding: 0 16px;
+}
+.bdm-degrade-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.bdm-degrade-sub {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 16px;
+}
+.bdm-degrade-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: #fff;
+  padding: 8px 22px;
+  border-radius: 6px;
+  background: #00AEEC;
+  transition: filter 0.18s ease;
+}
+.bdm-degrade-btn:hover { filter: brightness(1.12); }
+
+/* ---------- 8. 弹窗体系（下载/收藏/分享） ---------- */
+.bdm-dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: bdmFade 0.18s ease;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+.bdm-dialog {
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+  animation: bdmPop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.bdm-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #E3E5E7;
+}
+.bdm-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #18191C;
+}
+.bdm-dialog-sub {
+  font-size: 12px;
+  color: #9499A0;
+  margin-top: 2px;
+}
+.bdm-dialog-x, .bdm-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #9499A0;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+.bdm-dialog-x:hover, .bdm-close:hover { color: #00AEEC; }
+.bdm-dialog-body {
+  padding: 12px 20px 18px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.bdm-dl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #E3E5E7;
+}
+.bdm-dl-row:last-child { border-bottom: none; }
+.bdm-dl-info {
+  flex: 1;
+  font-size: 13px;
+  color: #61666D;
+}
+.bdm-dl-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: #fff;
+  padding: 7px 18px;
+  border-radius: 6px;
+  background: #00AEEC;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+  flex-shrink: 0;
+}
+.bdm-dl-btn:hover { filter: brightness(1.1); }
+.bdm-dl-btn:disabled { opacity: 0.5; cursor: default; filter: none; }
+.bdm-fav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #E3E5E7;
+}
+.bdm-fav-row:last-child { border-bottom: none; }
+.bdm-fav-name {
+  flex: 1;
+  font-size: 14px;
+  color: #18191C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bdm-fav-ok {
+  font-size: 13px;
+  color: #FF6699;
+  flex-shrink: 0;
+}
+.bdm-share-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bdm-share-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid #E3E5E7;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #18191C;
+  background: #F6F7F8;
+  outline: none;
+  font-family: inherit;
+}
+.bdm-share-input:focus {
+  border-color: #00AEEC;
+  background: #fff;
+}
+/* 弹窗暗色（跟随 B站 html.bili_dark） */
+html.bili_dark .bdm-dialog { background: #24272C; }
+html.bili_dark .bdm-dialog-head { border-bottom-color: rgba(255, 255, 255, 0.08); }
+html.bili_dark .bdm-dialog-title { color: #F1F2F3; }
+html.bili_dark .bdm-dl-info { color: #C9CCD0; }
+html.bili_dark .bdm-fav-name { color: #F1F2F3; }
+html.bili_dark .bdm-share-input {
+  background: #2B2F36;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #F1F2F3;
+}
+html.bili_dark .bdm-dl-row,
+html.bili_dark .bdm-fav-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
+
+/* ---------- 9. 全局提示 ---------- */
+.bdm-toast {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483700;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: bdmFade 0.2s ease;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+
+/* ---------- 10. 「刷B站」导航入口（桌面客户端式） ---------- */
+/* 形态对齐 B站 Windows 桌面版左侧导航项：图标 + 文字、圆角 8px、悬停浅底、选中品牌蓝
+   flex:0 0 auto + nowrap 是必需的：否则会被B站导航栏的 flex 挤压成竖排三行 */
+#bdm-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  margin-left: 8px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 174, 236, 0.1);
+  color: #00AEEC;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+#bdm-nav-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+#bdm-nav-btn:hover { background: #00AEEC; color: #FFFFFF; }
+#bdm-nav-btn:active { transform: scale(0.96); }
+#bdm-nav-btn.bdm-nav-on { background: #00AEEC; color: #FFFFFF; }
+#bdm-nav-btn.bdm-nav-inline { margin-left: 8px; }
+html.bili_dark #bdm-nav-btn { background: rgba(0, 174, 236, 0.18); color: #40C5F1; }
+html.bili_dark #bdm-nav-btn:hover,
+html.bili_dark #bdm-nav-btn.bdm-nav-on { background: #00AEEC; color: #FFFFFF; }
+
+/* 兜底：B站改版导致导航选择器全部失配时，悬浮左下角，仍一眼可见 */
+#bdm-nav-btn.bdm-nav-fixed {
+  position: fixed;
+  left: 16px;
+  bottom: 24px;
+  z-index: 2147483000;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 15px;
+  background: #00AEEC;
+  color: #FFFFFF;
+  box-shadow: 0 6px 20px rgba(0, 174, 236, 0.45);
+}
+#bdm-nav-btn.bdm-nav-fixed:hover { background: #0098D4; color: #FFFFFF; }
+
+/* ---------- 11. 动画 ---------- */
+@keyframes bdmPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes bdmFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes bdmPop {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------- 12. 减动效尊重 ---------- */
+/* 矮窗适配：用户实际窗口为 1389×628，操作栏 7 项在默认间距下接近 500px，几乎占满屏幕 */
+@media (max-height: 720px) {
+  .bdm-root .bdm-act svg,
+  #bdm-root .bdm-act svg { width: 26px; height: 26px; }
+  .bdm-rail { gap: 12px; bottom: 104px; right: 10px; }
+  .bdm-act-num { font-size: 11px; }
+  .bdm-btn-triple { padding: 7px 14px; font-size: 13px; }
+  .bdm-info-title { font-size: 15px; }
+  .bdm-info { bottom: 108px; }
+  .bdm-ctrl { bottom: 46px; height: 35px; }
+  .bdm-seek { bottom: 88px; }
+  .bdm-dm-row { height: 42px; }
+  .bdm-online { font-size: 11px; margin-right: 8px; }
+  .bdm-dm-etq { font-size: 11px; margin-right: 8px; }
+  .bdm-dm-row .bdm-dm-input { max-width: 320px; margin: 0 6px; }
+  .bdm-sub { font-size: 20px; bottom: 12%; }
+  .bdm-ctrl-btn { min-width: 36px; height: 22px; font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bdm-root, #bdm-root, .bdm-act, .bdm-btn-triple, .bdm-dialog, .bdm-toast,
+  .bdm-ctrl, .bdm-seek, .bdm-seek-track, .bdm-slide::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 「简介」入口与简介面板（v0.1.38） */
+.bdm-info-more { display: inline-block; margin-top: 8px; padding: 1px 9px; font-size: 12px; line-height: 18px;
+  border-radius: 3px; background: rgba(255, 255, 255, 0.14); color: #fff; cursor: pointer; }
+.bdm-info-more:hover { background: rgba(255, 255, 255, 0.26); }
+.bdm-desc-kv { padding: 2px 0; font-size: 12px; color: rgba(255, 255, 255, 0.72); }
+/* 简介面板：沿用合集列表那套已验证的定位（左下、悬在信息块上方），
+   面板整体滚动；正文不再嵌套第二层滚动条（嵌套滚动在矮窗里很难用） */
+.bdm-desc-panel { left: 20px; bottom: 150px; width: 380px; max-height: 56%; }
+.bdm-desc-text { padding: 2px 0; font-size: 13px; line-height: 1.6; color: #fff;
+  white-space: pre-wrap; word-break: break-word; }
+.bdm-desc-empty { padding: 2px 0; font-size: 12px; color: rgba(255, 255, 255, 0.5); }
+
+/* 带动作的提示（撤销）：父级是 pointer-events:none，动作要自己打开命中 */
+.bdm-toast-t { pointer-events: none; }
+.bdm-toast-a { pointer-events: auto; margin-left: 12px; color: #00AEEC; font-weight: 600; cursor: pointer; }
+.bdm-toast-a:hover { color: #33c1f0; }

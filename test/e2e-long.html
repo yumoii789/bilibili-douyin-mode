@@ -1,0 +1,116 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>沉浸流真浏览器 E2E</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>html,body{margin:0;background:#111} #m{position:fixed;right:8px;top:8px;z-index:2147483647;background:#000e;color:#7CFC9A;font:11px/1.35 monospace;padding:6px 8px;margin:0;max-width:520px;white-space:pre-wrap}</style>
+<script>
+// ---- chrome 桩（含可用的 storage，设置要能读能写）----
+var STORE = {};
+window.chrome = { runtime: { getManifest: function () { return { version: "0.1.49-e2e" }; }, onMessage: { addListener: function () {} }, sendMessage: function () {} },
+  storage: { local: { get: function (k, cb) { var d = { bdmSettings: STORE.bdmSettings }; if (cb) { cb(d); return; } return Promise.resolve(d); },
+      set: function (o, cb) { Object.assign(STORE, o); if (cb) { cb(); return; } return Promise.resolve(); },
+      remove: function (k, cb) { if (cb) cb(); return Promise.resolve(); } },
+    onChanged: { addListener: function () {}, removeListener: function () {} } },
+  i18n: { getMessage: function (k) { return k; } } };
+// ---- 网络桩：只给沉浸流需要的端点 ----
+var OPENED = [];
+var _open = window.open; window.open = function (u) { OPENED.push(String(u)); return null; };
+var RCMD = { code: 0, data: { item: Array.from({ length: 12 }, function (_, i) { return {
+  bvid: "BV1test000" + i, cid: 990 + i, aid: 10000 + i, goto: "av", title: "真浏览器 E2E 的第 " + i + " 条",
+  pic: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", duration: 125,
+  owner: { mid: 500 + i, name: "UP" + i, face: "" },
+  stat: { view: 1000 * (i + 1), like: 10, danmaku: 3, reply: 9662, coin: 1, favorite: 2, share: 1 }, tname: "分区" + (i % 3) }; }) } };
+RCMD.data.item[2] = { goto: "live", roomid: 12345, title: "直播间（E2E）", uname: "主播甲", face: "", online: 88 };
+window.fetch = function (u, o) {
+  u = String(u); var body = null;
+  if (u.indexOf("rcmd") >= 0 || u.indexOf("/wbi/index/top/feed") >= 0) body = RCMD;
+  else if (u.indexOf("playurl") >= 0) {
+    var m = /qn=(\d+)/.exec(u); var q = m ? Number(m[1]) : 64;
+    body = u.indexOf("fnval=4048") >= 0
+      ? { code: 0, data: { quality: q, accept_quality: [120, 112, 80, 64, 32, 16], accept_description: ["超清 4K", "高清 1080P+", "高清 1080P", "高清 720P", "清晰 480P", "流畅 360P"],
+          dash: { video: [{ id: 80, codecs: "avc1.640028", baseUrl: "data:video/mp4;base64,AAAA" }, { id: 64, codecs: "avc1.64001F", baseUrl: "data:video/mp4;base64,AAAA" }],
+                  audio: [{ id: 30280, baseUrl: "data:audio/mp4;base64,AAAA", bandwidth: 128000 }] } } }
+      : { code: 0, data: { quality: Math.min(q, 64), accept_quality: [64, 32, 16], accept_description: ["高清 720P", "清晰 480P", "流畅 360P"], durl: [{ url: "data:video/mp4;base64,AAAA", size: 1234 }] } };
+  }
+  else if (u.indexOf("player/online/total") >= 0) body = { code: 0, data: { total: "94", count: "71", show_switch: { total: true, count: true } } };
+  else if (u.indexOf("/x/web-interface/view") >= 0) body = { code: 0, data: { cid: 990, aid: 10000, videos: 1, pages: [{ cid: 990, page: 1, part: "P1" }], desc: "E2E 简介", pubdate: 1690000000, stat: { view: 1, danmaku: 1, like: 1 }, owner: { mid: 1, name: "UP0" } } };
+  else body = { code: -404, message: "E2E 未登记端点" };
+  return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve(body); }, text: function () { return Promise.resolve(JSON.stringify(body)); } });
+};
+window.onerror = function (m, s, l, c) { var p = document.getElementById("m"); if (p) p.textContent = "ERR " + m + " @" + l + ":" + c + "\n" + p.textContent; };
+</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/desktop-skin.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script src="../src/content/player.js"></script>
+<script src="../src/content/douyin-mode.js"></script>
+</head><body>
+<script>
+// 让 rcmd 像真接口那样「每批给新条目」：否则第一次接续就会被去重挡掉（那是正确的产品行为，
+// 但会让长会话检查失去意义 —— 上一版就是卡在第 12 屏）。
+(function () {
+  var _f = window.fetch, n = 0;
+  window.fetch = function (u, o) {
+    u = String(u);
+    if (u.indexOf("rcmd") >= 0 || u.indexOf("feed/index/top") >= 0) {
+      n++;
+      var items = RCMD.data.item.map(function (it, i) {
+        if (it.goto === "live") return it;
+        var c = JSON.parse(JSON.stringify(it));
+        c.bvid = it.bvid + "x" + n; c.cid = it.cid + n * 100; c.title = "第 " + n + " 批 · 第 " + i + " 条";
+        return c;
+      });
+      return Promise.resolve({ ok: true, status: 200,
+        json: function () { return Promise.resolve({ code: 0, data: { item: items } }); },
+        text: function () { return Promise.resolve("{}"); } });
+    }
+    return _f.apply(null, arguments);
+  };
+})();
+</script>
+<pre id="m">long-session…</pre>
+<script>
+(function () {
+  var R = [], ok = function (n, c, d) { R.push((c ? "PASS | " : "FAIL | ") + n + (d === undefined ? "" : " | " + d)); };
+  var tick = function (ms) { return new Promise(function (r) { setTimeout(r, ms || 60); }); };
+  var root = function () { return document.querySelector(".bdm-root"); };
+  var at = function () { var r = root(); return r ? Math.round(r.scrollTop / r.clientHeight) : -1; };
+  (async function () {
+    try {
+      window.__BDM__.douyin.enter();
+      await tick(800);
+      var advanced = 0;
+      for (var i = 0; i < 30; i++) {
+        var cur = document.querySelectorAll(".bdm-slide")[at()];
+        if (!cur) break;
+        var nx = cur.querySelector(".bdm-btn-next");
+        if (!nx) break;
+        var before = at();
+        nx.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await tick(90);
+        if (at() > before) advanced++;
+      }
+      await tick(900);
+      var slides = Array.prototype.slice.call(document.querySelectorAll(".bdm-slide"));
+      var live = slides.filter(function (s) { return !s.classList.contains("bdm-released"); });
+      var withVideo = slides.filter(function (s) { return s.querySelector("video"); }).length;
+      var multiVid = slides.filter(function (s) { return s.querySelectorAll("video").length > 1; }).length;
+      var degrade = slides.filter(function (s) { return s.querySelector(".bdm-degrade"); }).length;
+      var audio = document.querySelectorAll(".bdm-audio").length;
+      ok("长会话：能连续推进（点了 " + advanced + " 次）", advanced >= 20, "推进=" + advanced + " 当前屏=" + at());
+      ok("长会话：已回收的屏占多数（媒体流不线性增长）", live.length <= 9, "未回收=" + live.length + " / 共 " + slides.length);
+      ok("长会话：每一屏最多 1 个 <video>（反复恢复不堆媒体元素）", multiVid === 0, "异常屏数=" + multiVid);
+      ok("长会话：有 video 的屏 + 降级屏 = 总屏数（没有「丢了播放器」的屏）", withVideo + degrade === slides.length,
+        "有 video=" + withVideo + " 降级=" + degrade + " 总=" + slides.length);
+      ok("长会话：音轨数量有上界（DASH 双轨不每屏留一条）", audio <= 9, "audio 元素=" + audio);
+      var before2 = at();
+      var cur2 = document.querySelectorAll(".bdm-slide")[before2];
+      if (cur2 && cur2.querySelector(".bdm-btn-next")) { cur2.querySelector(".bdm-btn-next").dispatchEvent(new MouseEvent("click", { bubbles: true })); await tick(600); }
+      ok("长会话之后仍然能继续前进（没有卡死）", at() > before2, "idx " + before2 + " → " + at());
+    } catch (e) { R.push("FAIL | 长会话抛异常：" + (e && e.message)); }
+    R.forEach(function (x) { console.log("[E2E-LONG] " + x); });
+    var fail = R.filter(function (x) { return x.indexOf("FAIL") === 0; }).length;
+    console.log("[E2E-LONG] 汇总：" + R.length + " 条，" + fail + " 失败");
+    document.getElementById("m").textContent = R.join("\n");
+  })();
+})();
+</script></body></html>

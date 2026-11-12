@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>简介面板实测</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>html,body{margin:0;height:100%;background:#141418;overflow:hidden}
+.bdm-slide{height:628px !important;overflow:hidden}
+#m{position:fixed;left:8px;top:6px;z-index:2147483647;color:#7CFC9A;font:13px/1.5 monospace;background:#000c;padding:6px;margin:0;white-space:pre-wrap}</style></head><body>
+<pre id="m">measuring…</pre>
+<script>window.chrome={storage:{local:{get:function(k,cb){var d={};return cb?(cb(d),undefined):Promise.resolve(d);},set:function(o,cb){return cb?(cb(),undefined):Promise.resolve();}},onChanged:{addListener:function(){}}}};
+window.onerror=function(m,s,l,c){document.getElementById("m").textContent="ERR "+m+" @"+l+":"+c;};</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+function run(){
+  var item={bvid:"BV1xx411c7mD",title:"简介面板实测（模拟用户窗口 1389x628）",owner:{name:"UP"},stat:{view:123456,like:3456,danmaku:2048,reply:10},pic:""};
+  var b=window.__BDM__.ui.buildSlide(item);
+  document.body.appendChild(b.root);
+  var ui=window.__BDM__.ui, p=b.descPanel;
+  p.label("简介");
+  var body=p.group(p.left,"视频信息");
+  ["UP主：某UP主","发布：2024/1/1","数据：12.3万 播放 · 2048 弹幕 · 3456 点赞","分P：3 个","合集：某某合集"].forEach(function(t){ ui.el("div","bdm-desc-kv",body).textContent=t; });
+  var dg=p.group(p.left,"简介正文");
+  ui.el("div","bdm-desc-text",dg).textContent=new Array(13).join("这是一段很长的简介正文，用来测量面板高度与滚动行为。\n");
+  p.action("复制简介",function(){}); p.action("打开原页",function(){});
+  p.show(true);
+  var pr=b.root.getBoundingClientRect(), br=p.root.getBoundingClientRect();
+  var lines=["视口="+window.innerWidth+"x"+window.innerHeight+" 覆盖层="+Math.round(pr.width)+"x"+Math.round(pr.height),
+    "简介面板：左="+Math.round(br.left)+" 顶="+Math.round(br.top)+" 宽="+Math.round(br.width)+" 高="+Math.round(br.height)+" 右="+Math.round(br.right)+" 底="+Math.round(br.bottom),
+    "越界：左="+(br.left<pr.left?Math.round(pr.left-br.left)+"px":"无")+" 顶="+(br.top<pr.top?Math.round(pr.top-br.top)+"px":"无")+" 右="+(br.right>pr.right?Math.round(br.right-pr.right)+"px":"无")+" 底="+(br.bottom>pr.bottom?Math.round(br.bottom-pr.bottom)+"px":"无"),
+    "面板内滚动："+(p.root.scrollHeight>p.root.clientHeight?"会滚动("+p.root.scrollHeight+">"+p.root.clientHeight+")":"不滚动"),
+    "设置面板对照：宽="+Math.round(b.setPanel.root.getBoundingClientRect().width)+" 左="+Math.round(b.setPanel.root.getBoundingClientRect().left)+" 右="+Math.round(b.setPanel.root.getBoundingClientRect().right),
+    "信息块「简介」胶囊：存在="+(!!b.more)+" 左="+(b.more?Math.round(b.more.getBoundingClientRect().left):"-")+" 顶="+(b.more?Math.round(b.more.getBoundingClientRect().top):"-")];
+  document.getElementById("m").textContent=lines.join("\n");
+}
+run();
+</script></body></html>

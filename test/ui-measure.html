@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>设置面板高度实测</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>html,body{margin:0;height:100%;background:#141418;overflow:hidden}
+/* 把覆盖层压到用户真实窗口高度（1389x628），量面板是否越界 */
+.bdm-slide{height:628px !important;overflow:hidden}   /* 模拟用户真实窗口 1389x628 */
+#m{position:fixed;left:8px;top:6px;z-index:2147483647;color:#7CFC9A;font:13px/1.5 monospace;background:#000c;padding:6px;margin:0;white-space:pre-wrap}</style></head><body>
+<pre id="m">measuring…</pre>
+<script>window.chrome={storage:{local:{get:function(k,cb){var d={};return cb?(cb(d),undefined):Promise.resolve(d);},set:function(o,cb){return cb?(cb(),undefined):Promise.resolve();}},onChanged:{addListener:function(){}}}};
+window.onerror=function(m,s,l,c){document.getElementById("m").textContent="ERR "+m+" @"+l+":"+c;};</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+function run(){
+  var item={bvid:"BV1xx411c7mD",title:"设置面板高度实测",owner:{name:"UP"},stat:{view:1,like:1,danmaku:1,reply:1},pic:""};
+  var b=window.__BDM__.ui.buildSlide(item);
+  document.body.appendChild(b.root);
+  var p=b.setPanel, g;
+  p.label("设置");
+  g=p.group(p.left,"播放设置"); p.switches(g,[{label:"自动连播",on:true},{label:"单集循环"},{label:"镜像画面"},{label:"宽屏铺满"},{label:"右键长按倍速"}],function(){});
+  g=p.group(p.left,"声音"); p.switches(g,[{label:"音量均衡"}],function(){});
+  g=p.group(p.right,"视频比例"); p.radios(g,[{label:"默认",on:true},{label:"16:9"},{label:"4:3"},{label:"21:9"},{label:"填充"}],function(){});
+  g=p.group(p.right,"编码"); p.radios(g,[{label:"自动",on:true},{label:"AVC"},{label:"HEVC"},{label:"AV1"}],function(){});
+  g=p.group(p.right,"编码生效条件"); window.__BDM__.ui.el("div","bdm-set-empty",g).textContent="编码偏好仅对 DASH 档位（1080P+ / 4K 等）生效；mp4 单文件流固定 avc。";
+  ["亮度","对比度","饱和度"].forEach(function(t){ var gg=p.group(p.right,t); p.radios(gg,[{label:"50%"},{label:"75%"},{label:"100%",on:true},{label:"125%"},{label:"150%"}],function(){}); });
+  p.show(true);
+  var pr=b.root.getBoundingClientRect(), br=p.root.getBoundingClientRect();
+  var lines=["视口高="+window.innerHeight+" 覆盖层高="+Math.round(pr.height)+"（模拟 628）",
+    "设置面板 高="+Math.round(br.height)+" 顶="+Math.round(br.top)+" 底="+Math.round(br.bottom),
+    "相对覆盖层：顶部越界 "+(br.top<pr.top? Math.round(pr.top-br.top)+"px" : "无")+" / 底部越界 "+(br.bottom>pr.bottom? Math.round(br.bottom-pr.bottom)+"px" : "无"),
+    "面板列高：左="+Math.round(p.left.getBoundingClientRect().height)+" 右="+Math.round(p.right.getBoundingClientRect().height)];
+  var dmp=b.dmPanel; dmp.label("弹幕设置");
+  dmp.group(dmp.left,"显示区域"); dmp.group(dmp.left,"不透明度"); dmp.group(dmp.left,"弹幕字号"); dmp.group(dmp.left,"弹幕速度");
+  dmp.group(dmp.left,"弹幕密度"); dmp.group(dmp.left,"弹幕观看屏蔽词"); dmp.group(dmp.right,"弹幕字体"); dmp.group(dmp.right,"弹幕类型");
+  dmp.action("清屏",function(){}); dmp.action("重置",function(){}); dmp.show(true);
+  var dr=dmp.root.getBoundingClientRect();
+  lines.push("弹幕面板 高="+Math.round(dr.height)+" 顶="+Math.round(dr.top)+" 相对覆盖层顶部越界 "+(dr.top<pr.top? Math.round(pr.top-dr.top)+"px":"无"));
+  document.getElementById("m").textContent=lines.join("\n");
+}
+run();
+</script></body></html>

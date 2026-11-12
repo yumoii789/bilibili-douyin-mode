@@ -1,0 +1,24 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>字幕层预览</title>
+<link rel="stylesheet" href="../src/content/douyin-mode.css">
+<style>html,body{margin:0;height:100%;background:#0a0a0d;overflow:hidden}</style></head><body>
+<script>window.chrome={storage:{local:{get:function(k,cb){var d={};return cb?(cb(d),undefined):Promise.resolve(d);},set:function(o,cb){return cb?(cb(),undefined):Promise.resolve();}},onChanged:{addListener:function(){}}}};
+window.onerror=function(m,s,l,c){document.title="ERR "+m+" @"+l+":"+c;};</script>
+<script src="../src/content/settings.js"></script>
+<script src="../src/content/api.js"></script>
+<script src="../src/content/ui.js"></script>
+<script>
+function run(){
+  var item={bvid:"BV1xx411c7mD",title:"【4K修复】字幕层观感核对",owner:{name:"测试UP主"},stat:{view:1234567,like:10000,danmaku:2000,reply:9662,coin:500,favorite:300,share:20},pic:""};
+  var b=window.__BDM__.ui.buildSlide(item);
+  document.body.appendChild(b.root);
+  // 复现真实嵌套：.bdm-video-area > .bdm-player > (.bdm-video + .bdm-dmlayer + .bdm-sub)
+  var wrap=document.createElement("div"); wrap.className="bdm-player"; b.videoArea.appendChild(wrap);
+  var dm=document.createElement("div"); dm.className="bdm-dmlayer"; wrap.appendChild(dm);
+  var sub=document.createElement("div"); sub.className="bdm-sub"; wrap.appendChild(sub);
+  sub.textContent="这是一句示例字幕，用于核对外观与位置（白字加重描边）";
+  sub.style.display="block";
+  b.seek.fill.style.width="37%"; b.ctrl.time.textContent="01:23 / 03:45"; b.ctrl.qn.textContent="1080P"; b.panel.style.display="none";
+  document.title="PREVIEW_READY";
+}
+run();
+</script></body></html>
