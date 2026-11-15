@@ -1,6 +1,5 @@
 # 刷B站 · B站 竖屏沉浸流（Chrome / Edge MV3 扩展）
 
-[![CI](https://github.com/yumoii789/bilibili-douyin-mode/actions/workflows/ci.yml/badge.svg)](https://github.com/yumoii789/bilibili-douyin-mode/actions/workflows/ci.yml)
 
 把 B站 网页变成抖音式竖屏沉浸流；另有一个独立开关，可把**整个网页**换成 B站 Windows 桌面客户端的观感。
 
@@ -27,7 +26,7 @@
 node test/run-all.mjs        # 三个套件：装包前自检 + 逻辑断言 + 扩展页面
 ```
 
-（每次 push 由 GitHub Actions 跑同一条命令，徽章即其状态；行为套件不访问网络，本地与 CI 结果一致。）
+（行为套件不访问网络，所以本地与 CI 结果一致。仓库里已备好 `.github/workflows/ci.yml`；把它推上去需要带 **workflow** 权限的令牌或走 GitHub 网页端 —— 细粒度 PAT 默认没有该权限。）
 
 真渲染自检（在浏览器里打开，页面会自己打印检查结果）：
 
