@@ -26,7 +26,7 @@
 node test/run-all.mjs        # 三个套件：装包前自检 + 逻辑断言 + 扩展页面
 ```
 
-（行为套件不访问网络，所以本地与 CI 结果一致。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
+（行为套件不访问网络，且**不依赖任何未入库文件** —— 想等价验证 CI，做一次干净克隆再跑同一条命令即可：`git clone . /tmp/x && cd /tmp/x && node test/run-all.mjs`，本仓库实测 3/3 通过。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
 
 真渲染自检（在浏览器里打开，页面会自己打印检查结果）：
 
