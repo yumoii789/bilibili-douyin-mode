@@ -11,6 +11,7 @@ window.__BDM__ = window.__BDM__ || {};
   var items = [];
   var idx = 0;
   var busy = false;
+  var muteMemo = 0;   // M 键静音前的音量（只活在本次会话，不写进设置）
   var active = false;
   var keepTimer = null;   // 定时把 DOM 撑到当前屏之后 2 屏的保险丝
 
@@ -673,6 +674,34 @@ window.__BDM__ = window.__BDM__ || {};
           if (rec.player.video.paused) rec.player.play(); else rec.player.pause();
         }
       }
+      // F / M / D：全屏 / 静音 / 弹幕开关。B站 的快捷键系统里就有这三个键（bundle 里有 KeyF/KeyD/KeyM
+      // 与一份可绑定表），具体动作由用户可改；我们按通行约定接：F 全屏、M 静音、D 弹幕开关。
+      // 用 e.code（物理键位）而不是 e.key —— 换输入法/键盘布局时 e.key 会变、e.code 不会。
+      else if (e.code === "KeyF") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      else if (e.code === "KeyM") {
+        var rM = slides[idx];
+        if (!rM || !rM.player) return;
+        e.preventDefault();
+        var vM = rM.player.video;
+        if ((vM.volume || 0) > 0) {
+          muteMemo = vM.volume;                 // 记住用户原本的音量，别用 0 覆盖设置里的偏好
+          rM.player.setVolume(0);
+          toastLine("已静音（再按 M 恢复）");
+        } else {
+          rM.player.setVolume(muteMemo || Number(S.get().volume) || 0.7);
+          toastLine("已取消静音");
+        }
+        var volEl = rM.slide && rM.slide.ctrl && rM.slide.ctrl.volRange;
+        if (volEl) volEl.value = String(Math.round((vM.volume || 0) * 100));
+      }
+      else if (e.code === "KeyD") {
+        e.preventDefault();
+        setDanmakuOn(slides[idx], !S.get().dmEnabled);
+      }
+
       // ← / → 快退 / 快进 5 秒。B站 播放器与各站播放器的通例；沉浸流里 ↑↓ 已被换屏占用，
       // 左右是空的，正好给时间轴（和进度条拖动同一套做法：直接改 currentTime，音轨由
       // player 的 seeking/seeked 监听镜像，不需要额外同步）。
@@ -776,15 +805,7 @@ window.__BDM__ = window.__BDM__ || {};
       S.saveSettings({ volume: v });
     });
     c.dm.classList.toggle("bdm-on", !!S.get().dmEnabled);
-    c.dm.addEventListener("click", function () {
-      var on = !S.get().dmEnabled;
-      S.saveSettings({ dmEnabled: on });
-      c.dm.classList.toggle("bdm-on", on);
-      if (rec === slides[idx]) {
-        player.setDanmakuOn(on);
-        if (on) player.startDanmaku(); else player.stopDanmaku();
-      }
-    });
+    c.dm.addEventListener("click", function () { setDanmakuOn(rec, !S.get().dmEnabled); });
     // 发送按钮：与回车同一条路径（B站 操作条两者并存）
     c.dmSend.addEventListener("click", function () { sendDanmaku(rec); });
     // 弹幕礼仪：打开 B站 自己的规则页（地址来自它的 bundle，已验证 200）
@@ -1201,6 +1222,16 @@ window.__BDM__ = window.__BDM__ || {};
       { label: "举报 / 反馈", onPick: function () { window.open("https://www.bilibili.com/video/" + rec.item.bvid, "_blank"); } }
     ];
   }
+  // 弹幕开关（发送行按钮、D 键、设置变更共用同一套动作：改设置 → 同步按钮态 → 只动当前屏）
+  function setDanmakuOn(rec, on) {
+    S.saveSettings({ dmEnabled: !!on });
+    if (rec && rec.slide && rec.slide.ctrl && rec.slide.ctrl.dm) rec.slide.ctrl.dm.classList.toggle("bdm-on", !!on);
+    if (rec && rec.player && rec === slides[idx]) {
+      rec.player.setDanmakuOn(!!on);
+      if (on) rec.player.startDanmaku(); else rec.player.stopDanmaku();
+    }
+  }
+
   // 详情页：普通稿件 = B站 稿件详情页（/video/BV…，与 view 接口同一个「详情」语义）。
   // 直播分支是**防御性**的：直播那屏的播放器已被降级卡取代，右键盘菜单在这类屏上打不开，
   // 所以实践中走不到这里；保留它是因为入口若将来扩到别处，语义仍然正确。

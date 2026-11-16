@@ -2543,6 +2543,54 @@ B.douyin.exit();
 await tick(60);
 ok("BA 组收尾：退出干净", B.douyin.isActive() === false);
 
+G("BB 快捷键 F/M/D（全屏 / 静音 / 弹幕开关）—— 按 e.code，物理键位");
+B.douyin.enter();
+await tick(400);
+const rootBB = doc.querySelector(".bdm-root");
+const sBB = () => doc.querySelectorAll(".bdm-slide")[Math.round(rootBB.scrollTop / 800)];
+const pressBB = (code) => doc.dispatchEvent({ type: "keydown", code: code, key: code.replace("Key", "").toLowerCase(), target: doc.body });
+// F：全屏
+// 夹具是用 doc.fullscreenElement 记录全屏状态的（requestFullscreen 的桩会设它）
+pressBB("KeyF");
+await tick(120);
+ok("按 F → 进入全屏（与点全屏按钮同一条路径）", doc.fullscreenElement === doc.documentElement,
+  "fullscreenElement=" + String(doc.fullscreenElement && doc.fullscreenElement.tagName));
+pressBB("KeyF");
+await tick(120);
+ok("再按 F → 退出全屏", doc.fullscreenElement === null, "fullscreenElement=" + String(doc.fullscreenElement));
+// D：弹幕开关
+const dmBefore = B.settings.dmEnabled;
+const dmSwitchBB = sBB().querySelector(".bdm-btn-dm");
+pressBB("KeyD");
+await tick(150);
+ok("按 D → 弹幕开关翻转（设置 + 当前屏 + 按钮态三者同步）",
+  B.settings.dmEnabled !== dmBefore && dmSwitchBB._s.has("bdm-on") === B.settings.dmEnabled,
+  "dmEnabled " + dmBefore + "→" + B.settings.dmEnabled + " 按钮态=" + dmSwitchBB._s.has("bdm-on"));
+pressBB("KeyD");
+await tick(120);
+ok("再按 D → 翻回来（同一个函数，按钮与设置不分家）", B.settings.dmEnabled === dmBefore, "dmEnabled=" + B.settings.dmEnabled);
+// M：静音 / 恢复
+const vBB = sBB().querySelector("video");
+const volSaved = B.settings.volume;
+vBB.volume = 0.8; B.settings.volume = 0.8;
+pressBB("KeyM");
+await tick(120);
+ok("按 M → 静音，且**不写设置**（用户设的音量偏好不该被 0 覆盖）", vBB.volume === 0 && B.settings.volume === 0.8,
+  "video.volume=" + vBB.volume + " settings.volume=" + B.settings.volume);
+pressBB("KeyM");
+await tick(120);
+ok("再按 M → 恢复到静音前的音量", Math.abs(vBB.volume - 0.8) < 0.001, "video.volume=" + vBB.volume);
+vBB.volume = 1; B.settings.volume = volSaved;
+// 输入框里不该抢键
+const inBB = sBB().querySelector(".bdm-dm-input");
+const dmBefore2 = B.settings.dmEnabled;
+doc.dispatchEvent({ type: "keydown", code: "KeyD", key: "d", target: inBB });
+await tick(80);
+ok("在弹幕输入框里按 D → 不切弹幕（打字优先）", B.settings.dmEnabled === dmBefore2, "dmEnabled=" + B.settings.dmEnabled);
+B.douyin.exit();
+await tick(60);
+ok("BB 组收尾：退出干净", B.douyin.isActive() === false);
+
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
 
