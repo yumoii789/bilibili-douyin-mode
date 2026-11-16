@@ -499,7 +499,32 @@ window.__BDM__ = window.__BDM__ || {};
     return ver() + " 屏=" + slides.filter(Boolean).length + "/" + items.length +
       " idx=" + idx + " scrollTop=" + Math.round(root.scrollTop) +
       " clientH=" + root.clientHeight + " scrollH=" + root.scrollHeight +
-      " slideH=" + Math.round(slideH()) + " 子节点=" + root.children.length;
+      " slideH=" + Math.round(slideH()) + " 子节点=" + root.children.length + skinDiag();
+  }
+
+  // 皮肤（桌面版样式）开着时，把**接管层的关键几何**附进诊断串 ——
+  // 用户报「侧栏错乱 / 频道条没吸住 / 搜索框压住东西」时，我手里需要的正是这几个数。
+  // 刻意不加新 UI：diag() 在进入沉浸流时本来就会打一行（见文件顶部）。
+  function skinDiag() {
+    try {
+      var sk = window.__BDM__ && window.__BDM__.skin;
+      if (!sk || !sk.isOn || !sk.isOn()) return "";
+      var box = function (sel) {
+        var el = document.querySelector(sel);
+        if (!el) return "无";
+        var r = el.getBoundingClientRect();
+        return Math.round(r.width) + "x" + Math.round(r.height) + "@" + Math.round(r.left) + "," + Math.round(r.top);
+      };
+      var de = document.documentElement;
+      var hasFn = (window.CSS && CSS.supports) ? CSS.supports("selector(:has(*))") : "?";
+      return " | 皮肤 侧栏=" + box(".bili-header__bar") +
+        " 频道条=" + box(".bili-header__channel") +
+        " 搜索=" + box(".center-search-container") +
+        " body左内边距=" + getComputedStyle(document.body).paddingLeft +
+        " 频道条高变量=" + (de.style.getPropertyValue("--bdm-channel-h") || "未设") +
+        " :has()=" + hasFn +
+        " 入口按钮=" + (document.getElementById("bdm-nav-btn") ? "在" : "无");
+    } catch (e) { return " | 皮肤诊断异常:" + (e && e.message); }
   }
 
   // 翻页自检：动画结束后若没落在目标屏上，说明滚动被裁切或被吞掉。
@@ -1638,6 +1663,7 @@ window.__BDM__ = window.__BDM__ || {};
   }
 
   window.__BDM__.douyin = {
+    diag: diag,                 // 暴露诊断串：控制台里 __BDM__.douyin.diag() 可随时取
     enter: enter, exit: exit, isActive: function () { return active; },
     // 供弹窗模块（另一个 IIFE）按记录移除该屏
     removeRec: function (rec) { var i = slides.indexOf(rec); if (i < 0) return false; removeAt(i); return true; },
