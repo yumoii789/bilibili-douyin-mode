@@ -10,6 +10,9 @@ test/bili-overlay-preview.html
 # ---- 临时文件（用「git add -A」时最容易误扫进来的一类）
 .tmp*
 
+# ---- 隧道工具的 IP 缓存（本机环境相关，不入库）
+test/.gh-ips.json
+
 # ---- 系统与编辑器
 Thumbs.db
 .DS_Store
