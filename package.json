@@ -1,0 +1,14 @@
+{
+  "name": "bilibili-douyin-mode",
+  "version": "0.1.53",
+  "private": true,
+  "description": "B站 竖屏沉浸流（Chrome/Edge MV3 扩展）：抖音式竖屏信息流 + 桌面客户端风格的整页皮肤",
+  "scripts": {
+    "test": "node test/run-all.mjs",
+    "preflight": "node test/preflight.mjs",
+    "preview": "node test/make-skin-preview.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "license": "UNLICENSED",
+  "comment": "无运行时依赖；测试全部用 Node 内置能力，行为套件不访问网络。license 未指定 = 保留所有权利。"
+}

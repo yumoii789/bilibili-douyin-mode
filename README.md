@@ -23,8 +23,11 @@
 ## 验证
 
 ```bash
-node test/run-all.mjs        # 三个套件：装包前自检 + 逻辑断言 + 扩展页面
+npm test                     # 等价于 node test/run-all.mjs：装包前自检 + 逻辑断言 + 扩展页面
+npm run preflight            # 只跑装包前自检（manifest/引用/语法/i18n/版本一致/CI 配置）
 ```
+
+无运行时依赖、无构建步骤（`npm install` 不需要执行）。
 
 （行为套件不访问网络，且**不依赖任何未入库文件** —— 想等价验证 CI，做一次干净克隆再跑同一条命令即可：`git clone . /tmp/x && cd /tmp/x && node test/run-all.mjs`，本仓库实测 3/3 通过。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
 

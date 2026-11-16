@@ -62,6 +62,20 @@ if (m) {
   ok("文档里的版本号与 manifest 一致（" + docs.join(" / ") + "）", drift.length === 0, drift.join(", ") || "一致");
 }
 
+// CI 配置放在 docs/ci.yml.txt（.github/workflows/ 需要 workflow 权限，细粒度 PAT 没有）。
+// 做一层机械校验：缩进/制表符/关键键/以及**跑的命令必须与套件入口一致** ——
+// 真正的语法验证在 GitHub 首次运行时给出，这里只拦「复制粘贴常见错」。
+if (fs.existsSync(P("docs/ci.yml.txt"))) {
+  const ci = fs.readFileSync(P("docs/ci.yml.txt"), "utf8");
+  const bad = [];
+  if (/\t/.test(ci)) bad.push("含制表符");
+  ["name:", "on:", "jobs:", "runs-on:", "steps:", "uses:", "run:"].forEach(k => { if (ci.indexOf(k) < 0) bad.push("缺 " + k); });
+  if (ci.indexOf("node test/run-all.mjs") < 0) bad.push("run 命令与套件入口不一致");
+  const runAll = fs.readFileSync(P("test/run-all.mjs"), "utf8");
+  ["preflight.mjs", "vm-test.mjs", "pages-test.mjs"].forEach(f => { if (runAll.indexOf(f) < 0) bad.push("run-all 少了 " + f); });
+  ok("docs/ci.yml.txt 结构可用（无制表符、关键键齐、跑的正是套件入口）", bad.length === 0, bad.join("; ") || "通过");
+}
+
 const fails = R.filter((x) => x.startsWith("FAIL"));
 console.log("\n===== 装包前自检汇总：检查 " + R.length + " 项，失败 " + fails.length + " 项 =====");
 process.exit(fails.length ? 1 : 0);
