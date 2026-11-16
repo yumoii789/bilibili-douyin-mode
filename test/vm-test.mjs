@@ -2499,6 +2499,50 @@ B.douyin.exit();
 await tick(60);
 ok("AZ 组收尾：退出干净", B.douyin.isActive() === false);
 
+G("BA 键盘 ←/→ 快退快进 5 秒（B站 播放器通例；沉浸流里左右键本来是空的）");
+B.douyin.enter();
+await tick(400);
+const rootBA = doc.querySelector(".bdm-root");
+const sBA = () => doc.querySelectorAll(".bdm-slide")[Math.round(rootBA.scrollTop / 800)];
+const vBA = () => sBA().querySelector("video");
+const pressBA = (k) => doc.dispatchEvent({ type: "keydown", key: k, target: doc.body });
+// 造出可控的时长与位置
+const vid0 = vBA();
+Object.defineProperty(vid0, "duration", { value: 300, configurable: true });
+vid0.currentTime = 100;
+const idxBeforeBA = Math.round(rootBA.scrollTop / 800);
+pressBA("ArrowRight");
+await tick(80);
+ok("按 → 快进 5 秒（且不换屏）", Math.abs(vid0.currentTime - 105) < 0.01 && Math.round(rootBA.scrollTop / 800) === idxBeforeBA,
+  "currentTime=" + vid0.currentTime + " 屏 " + idxBeforeBA + "→" + Math.round(rootBA.scrollTop / 800));
+pressBA("ArrowLeft");
+await tick(80);
+ok("按 ← 快退 5 秒", Math.abs(vid0.currentTime - 100) < 0.01, "currentTime=" + vid0.currentTime);
+vid0.currentTime = 2;
+pressBA("ArrowLeft");
+await tick(80);
+ok("到开头再快退 → 夹在 0（不会变负数）", vid0.currentTime === 0, "currentTime=" + vid0.currentTime);
+vid0.currentTime = 298;
+pressBA("ArrowRight");
+await tick(80);
+ok("到结尾再快进 → 夹在时长（不会超出去）", Math.abs(vid0.currentTime - 300) < 0.01, "currentTime=" + vid0.currentTime);
+// 输入框里不该抢键（既有守卫，顺手回归一次）
+const inBA = sBA().querySelector(".bdm-dm-input");
+inBA.value = "ab";
+const tBeforeBA = vid0.currentTime;
+doc.dispatchEvent({ type: "keydown", key: "ArrowRight", target: inBA });
+await tick(60);
+ok("在弹幕输入框里按 → 不动播放进度（不抢输入）", Math.abs(vid0.currentTime - tBeforeBA) < 0.01, "currentTime=" + vid0.currentTime);
+// ↑↓ 仍然换屏（不回归）
+const beforeNavBA = Math.round(rootBA.scrollTop / 800);
+pressBA("ArrowDown");
+await tick(400);
+ok("↑↓ 仍然换屏（左右键没有抢走导航）", Math.round(rootBA.scrollTop / 800) > beforeNavBA,
+  "屏 " + beforeNavBA + "→" + Math.round(rootBA.scrollTop / 800));
+B.douyin.exit();
+await tick(60);
+ok("BA 组收尾：退出干净", B.douyin.isActive() === false);
+
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
 

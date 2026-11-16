@@ -673,6 +673,20 @@ window.__BDM__ = window.__BDM__ || {};
           if (rec.player.video.paused) rec.player.play(); else rec.player.pause();
         }
       }
+      // ← / → 快退 / 快进 5 秒。B站 播放器与各站播放器的通例；沉浸流里 ↑↓ 已被换屏占用，
+      // 左右是空的，正好给时间轴（和进度条拖动同一套做法：直接改 currentTime，音轨由
+      // player 的 seeking/seeked 监听镜像，不需要额外同步）。
+      else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        var r2 = slides[idx];
+        if (!r2 || !r2.player || !r2.loaded || r2.failed) return;   // 没就绪的屏不动它
+        var dur2 = r2.player.duration();
+        if (!dur2 || !isFinite(dur2)) return;
+        e.preventDefault();
+        var back = e.key === "ArrowLeft" ? -5 : 5;
+        var t2 = Math.min(dur2, Math.max(0, (r2.player.video.currentTime || 0) + back));
+        r2.player.video.currentTime = t2;
+        toastLine((back < 0 ? "快退 5s · " : "快进 5s · ") + fmtTime(t2) + " / " + fmtTime(dur2));
+      }
     });
   }
 
