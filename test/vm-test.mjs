@@ -31,6 +31,21 @@ function mkEl(tag) {
   e.tagName = String(tag || "div").toUpperCase();
   e.children = []; e.parentNode = null; e.style = mkStyle(); e.attrs = {}; e._s = new Set(); e._handlers = {};
   e.value = ""; e.type = ""; e.min = ""; e.max = "";
+  // 真 DOM 里改 volume/playbackRate 会派发 volumechange/ratechange（player.js 正是靠这两个事件
+  // 把音量与倍速镜像给配对的音轨）。夹具此前只是普通属性 → 那两条镜像**无法被断言**，
+  // 也意味着「倍速下音画不同步」这类缺陷在测试里看不见（第 5 次夹具补课）。
+  (function () {
+    const mk = (prop, ev) => {
+      let val = prop === "volume" ? 1 : 1;
+      Object.defineProperty(e, prop, {
+        get() { return val; },
+        set(x) { val = x; try { e.dispatchEvent({ type: ev }); } catch (err) { /* ignore */ } },
+        configurable: true,
+      });
+    };
+    mk("volume", "volumechange");
+    mk("playbackRate", "ratechange");
+  })();
   // 真实 DOM 语义：给 innerHTML / textContent 赋值会清空原有子节点（假 DOM 原先不清，于是面板每次重建都在累积）
   e._text = ""; e._html = "";
   Object.defineProperty(e, "textContent", {
@@ -1649,6 +1664,12 @@ pAC.setVolumeBalance(true);
 await tick(40);
 ok("反复开关音量均衡不得重建媒体源（元素一生只能绑一次，回收/重建场景的安全前提）",
   acLog.src === srcAC0 + 2, "媒体源 " + srcAC0 + " → " + acLog.src);
+// 镜像不变量：改音量 / 改倍速，都必须同步到配对的音轨（DASH 下声音在音轨上，不同步就是音画不一致）
+vAC.volume = 0.35;
+ok("改音量 → 音轨音量同步", Math.abs(aAC.volume - 0.35) < 0.001, "音轨=" + aAC.volume);
+vAC.playbackRate = 2;
+ok("改倍速 → 音轨倍速同步（否则 2 倍速时声音还是原速）", aAC.playbackRate === 2, "音轨倍速=" + aAC.playbackRate);
+vAC.volume = 1; vAC.playbackRate = 1;
 pAC.destroy();
 ok("销毁 → 纠偏心跳一并清掉", pAC.syncTimer === null, "syncTimer=" + pAC.syncTimer);
 B.settings.dmEnabled = true;
