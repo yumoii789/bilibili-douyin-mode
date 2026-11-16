@@ -40,6 +40,7 @@ npm run preflight            # 只跑装包前自检（manifest/引用/语法/i1
 | `test/e2e-preview.html` | 真浏览器交互（真点击/滚轮/右键/悬停/进度条坐标） |
 | `test/e2e-long.html` | 长会话资源上界（连推 30 屏） |
 | `test/e2e-fullscreen.html` | 全屏 + Esc 交互 |
+| `test/e2e-keys.html` | 键盘快捷键（CDP **可信按键** + 真实 currentTime/volume/全屏状态） |
 
 皮肤预览页由**抓取到的页面快照**生成（生成物不入库，避免分发 B站 页面结构）：
 
