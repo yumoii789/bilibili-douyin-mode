@@ -54,8 +54,13 @@ window.onerror = function (m, s, l, c) { var p = document.getElementById("m"); i
   var vid = function () { var s = cur(); return s ? s.querySelector("video") : null; };
   var state = function (tag) {
     var v = vid() || {};
+      var sk = cur() && cur().querySelector(".bdm-seek"), tr = cur() && cur().querySelector(".bdm-seek-track");
+      if (sk) { var rb = sk.getBoundingClientRect(); log("进度条盒 " + Math.round(rb.left) + "," + Math.round(rb.top) + " " + Math.round(rb.width) + "x" + Math.round(rb.height)); }
+      if (tr) { var tb = tr.getBoundingClientRect(); log("轨道盒 " + Math.round(tb.left) + "," + Math.round(tb.top) + " " + Math.round(tb.width) + "x" + Math.round(tb.height)); }
+    var tipEl = cur() && cur().querySelector(".bdm-seek-tip");
+    log("气泡 display=" + (tipEl ? JSON.stringify(tipEl.style.display) : "无") + " 文案=" + (tipEl ? JSON.stringify(String(tipEl.textContent)) : "无") + " left=" + (tipEl ? JSON.stringify(tipEl.style.left) : "无"));
     var ep = function (x, y) { var el = document.elementFromPoint(x, y); return el ? ((el.className || el.tagName) + "").slice(0, 24) : "无"; };
-    log("命中(640,250)=" + ep(640, 250) + "  命中(640,400)=" + ep(640, 400));
+    log("命中(400,710)=" + ep(400, 710) + " 命中(640,250)=" + ep(640, 250) + "  命中(640,400)=" + ep(640, 400));
     log(tag + " t=" + (Math.round((v.currentTime || 0) * 10) / 10) + " vol=" + (v.volume === undefined ? "?" : v.volume) +
         " fs=" + (document.fullscreenElement ? "on" : "off") + " dm=" + (window.__BDM__.settings.get().dmEnabled ? "on" : "off") + " paused=" + (v.paused === undefined ? "?" : v.paused));
   };

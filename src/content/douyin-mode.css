@@ -351,6 +351,10 @@
   transition: height 0.12s;
 }
 .bdm-seek:hover .bdm-seek-track { height: 6px; }
+/* 悬停时间气泡：贴在进度条上方；tabular-nums 让数字不跳动 */
+.bdm-seek-tip { position: absolute; bottom: 14px; left: 0; display: none; padding: 2px 8px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 12px; line-height: 18px; white-space: nowrap;
+  font-variant-numeric: tabular-nums; pointer-events: none; }
 .bdm-seek-fill {
   display: block;
   position: relative;

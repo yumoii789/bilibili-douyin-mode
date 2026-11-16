@@ -228,6 +228,8 @@ window.__BDM__ = window.__BDM__ || {};
     var seek = el("div", "bdm-seek", slide);
     var seekTrack = el("div", "bdm-seek-track", seek);
     var seekFill = el("div", "bdm-seek-fill", seekTrack);
+    // 悬停时间气泡（B站 播放器有预览/时间提示；我们只做时间，不做缩略图）
+    var seekTip = el("div", "bdm-seek-tip", seek);
 
     // 底部控制条：布局与控件顺序 1:1 对齐 B站 桌面版播放器（真浏览器实测的节点盒）
     //   左段 播放/暂停 · 下一集 · 00:00 / 00:00
@@ -314,7 +316,7 @@ window.__BDM__ = window.__BDM__ || {};
       more: more,
       dmRow: dmRow,                                     // 弹幕发送行（独立一行，控制条下方）
       season: season, seasonList: seasonList, descPanel: descPanel,
-      seek: { track: seekTrack, fill: seekFill },
+      seek: { box: seek, track: seekTrack, fill: seekFill, tip: seekTip },   // box=可点区（16px），track=视觉轨道（4px）
       progress: seekFill,                                // 兼容旧引用（timeupdate 驱动 + bindSeek）
       dmPanel: dmPanel, setPanel: setPanel, ctxMenu: ctxMenu,
       ctrl: {

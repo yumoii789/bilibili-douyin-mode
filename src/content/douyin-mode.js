@@ -386,7 +386,34 @@ window.__BDM__ = window.__BDM__ || {};
   var seekWinBound = false;
   function bindSeek(rec) {
     var track = rec.slide.seek && rec.slide.seek.track;
-    if (!track) return;
+    // 交互绑在**容器**（实测 16px 高）上，几何仍按**轨道**（4px 高）算 ——
+    // 此前监听挂在轨道上，等于可点区只有 4px：用户稍偏一点就点不到（真机很容易遇到）。
+    var hit = rec.slide.seek && rec.slide.seek.box;   // ⚠️ 别写成 rec.slide.seek —— 那是 {box,track,fill,tip} 对象，不是元素
+    if (!track || !hit) return;
+    // 悬停时间气泡：按鼠标在轨道上的比例算时间，文字复用 fmtTime（与左段时间同一个函数）。
+    // 更新放在 apply() 里 —— 拖动走的是 window 级 mousemove，放这里「按下 / 拖动」两条路径都覆盖。
+    function tip(clientX) {
+      var el = rec.slide.seek && rec.slide.seek.tip;
+      var pl = rec.player;
+      if (!el || !pl) return;
+      var dur2 = pl.duration();
+      var r2 = track.getBoundingClientRect();
+      if (!dur2 || !r2.width) { el.style.display = "none"; return; }
+      var ratio2 = Math.min(1, Math.max(0, (clientX - r2.left) / r2.width));
+      el.textContent = fmtTime(ratio2 * dur2);
+      el.style.display = "block";
+      // 先写文字再按自身宽度夹住左右，避免气泡超出进度条两端
+      var w2 = el.offsetWidth || 48;
+      var left2 = Math.min(Math.max(ratio2 * r2.width - w2 / 2, 0), Math.max(0, r2.width - w2));
+      el.style.left = Math.round(left2) + "px";
+    }
+    function hideTip() {
+      var el2 = rec.slide.seek && rec.slide.seek.tip;
+      if (el2) el2.style.display = "none";
+    }
+    hit.addEventListener("mouseenter", function (e) { tip(e.clientX); });
+    hit.addEventListener("mousemove", function (e) { tip(e.clientX); });
+    hit.addEventListener("mouseleave", hideTip);
     function apply(clientX) {
       var player = rec.player;                 // 每次现取：这一屏可能已被回收，划回后又换了新流
       if (!player) return;
@@ -396,8 +423,9 @@ window.__BDM__ = window.__BDM__ || {};
       if (!r.width) return;
       var ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
       player.video.currentTime = ratio * dur;
+      tip(clientX);
     }
-    track.addEventListener("mousedown", function (e) {
+    hit.addEventListener("mousedown", function (e) {
       seekDrag = { apply: apply };
       apply(e.clientX);
       e.preventDefault();

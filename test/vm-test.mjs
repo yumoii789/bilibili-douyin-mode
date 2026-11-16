@@ -614,7 +614,8 @@ q(".bdm-btn-dmset").dispatchEvent({ type: "click" });
 
 G("G 进度条拖拽");
 v0.duration = 125;
-s0.querySelector(".bdm-seek-track").dispatchEvent({ type: "mousedown", clientX: 700 });
+// 派发到**容器**（可点区 16px）；几何仍按轨道算 —— 交互挂容器是 v0.1.58 的修正（此前可点区只有 4px）
+s0.querySelector(".bdm-seek").dispatchEvent({ type: "mousedown", clientX: 700 });
 ok("按下进度条中点 → 跳到 50%", Math.abs(v0.currentTime - 62.5) < 0.01, "t=" + v0.currentTime);
 g.dispatchEvent({ type: "mousemove", clientX: 1400 });
 ok("拖动到最右 → 跳到片尾", Math.abs(v0.currentTime - 125) < 0.01, "t=" + v0.currentTime);
@@ -2627,6 +2628,43 @@ ok("面板开着时点画面 → 收起面板，且**不改变**播放状态",
 B.douyin.exit();
 await tick(60);
 ok("BC 组收尾：退出干净", B.douyin.isActive() === false);
+
+G("BD 进度条悬停时间气泡（此前只是变粗，没有时间）");
+B.douyin.enter();
+await tick(400);
+const rootBD = doc.querySelector(".bdm-root");
+const sBD = () => doc.querySelectorAll(".bdm-slide")[Math.round(rootBD.scrollTop / 800)];
+const trackBD = () => sBD().querySelector(".bdm-seek-track");
+const hitBD = () => (sBD()._flat().find(n => n._s.has("bdm-seek")) || null);   // 容器（可点区）
+const tipBD = () => sBD().querySelector(".bdm-seek-tip");
+const vBD = () => sBD().querySelector("video");
+Object.defineProperty(vBD(), "duration", { value: 300, configurable: true });
+// 给轨道一个已知矩形（假 DOM 默认没有尺寸）
+trackBD().getBoundingClientRect = () => ({ left: 100, width: 400, top: 700, height: 4, right: 500, bottom: 704 });
+const moveBD = (x) => hitBD().dispatchEvent({ type: "mousemove", clientX: x });   // 派发到**容器**（可点区）
+ok("前置：气泡默认不显示", tipBD().style.display !== "block", "display=" + JSON.stringify(tipBD().style.display));
+moveBD(300);   // 轨道 left=100 宽 400 → 比例 0.5 → 300s 的一半 = 02:30
+await tick(60);
+ok("鼠标移到进度条 1/2 处 → 气泡显示 02:30", tipBD().style.display === "block" && String(tipBD().textContent) === "02:30",
+  "display=" + JSON.stringify(tipBD().style.display) + " 文案=" + JSON.stringify(String(tipBD().textContent)));
+moveBD(100);   // 比例 0 → 00:00
+await tick(60);
+ok("移到最左 → 00:00，且气泡不超出左端（left >= 0）", String(tipBD().textContent) === "00:00" && parseFloat(tipBD().style.left || "0") >= 0,
+  "文案=" + JSON.stringify(String(tipBD().textContent)) + " left=" + JSON.stringify(tipBD().style.left));
+moveBD(600);   // 超出右端 → 应夹在 1.0
+await tick(60);
+ok("移到轨道外（右侧）→ 夹在总时长 05:00，且气泡被夹在轨道内",
+  String(tipBD().textContent) === "05:00" && parseFloat(tipBD().style.left) + (tipBD().offsetWidth || 48) <= 400 + 1,
+  "文案=" + JSON.stringify(String(tipBD().textContent)) + " left=" + JSON.stringify(tipBD().style.left));
+hitBD().dispatchEvent({ type: "mouseleave" });
+await tick(60);
+ok("可点区是容器（16px）而不是 4px 的轨道：两者是不同的元素，且容器存在", 
+  !!hitBD() && !!trackBD() && hitBD() !== trackBD(),
+  "容器=" + (hitBD() ? "有" : "无") + " 轨道=" + (trackBD() ? "有" : "无") + " 同一元素=" + (hitBD() === trackBD()));
+ok("鼠标离开 → 气泡隐藏", tipBD().style.display === "none", "display=" + JSON.stringify(tipBD().style.display));
+B.douyin.exit();
+await tick(60);
+ok("BD 组收尾：退出干净", B.douyin.isActive() === false);
 
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
