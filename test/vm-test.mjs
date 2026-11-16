@@ -276,6 +276,18 @@ XHR.prototype.open = function () {}; XHR.prototype.send = function () {}; XHR.pr
 
 // g 既是 globalThis 也是 window（与浏览器一致，裸 __BDM__ 才可见）
 const g = {};
+
+// 沙箱里缺 CSSOM 的 getComputedStyle（真浏览器一直在）——缺了会把用到它的真实代码逼到抛错（§112）。
+// 注意：要挂在**沙箱对象**上，不是测试文件自己的 globalThis（产品代码跑在沙箱里）。
+const CS_DEFAULTS = { paddingLeft: '0px', paddingTop: '0px', marginTop: '0px', display: 'block', visibility: 'visible', opacity: '1', overflow: 'visible', overflowY: 'visible', position: 'static', width: 'auto', height: 'auto' };
+g.getComputedStyle = (el) => new Proxy({}, {
+  get(t, k) {
+    if (typeof k !== 'string') return undefined;
+    if (el && el.style && el.style[k] != null && el.style[k] !== '') return String(el.style[k]);
+    if (Object.prototype.hasOwnProperty.call(CS_DEFAULTS, k)) return CS_DEFAULTS[k];
+    return '';
+  },
+});
 g._handlers = {};
 g.addEventListener = (t, h) => { (g._handlers[t] = g._handlers[t] || []).push(h); };
 g.removeEventListener = (t, h) => { const a = g._handlers[t] || []; const i = a.indexOf(h); if (i >= 0) a.splice(i, 1); };
@@ -2460,6 +2472,32 @@ ok("皮肤关闭 → 变量被清掉（不给关掉的页面留让位）",
 B.settings.desktopSkin = false;
 B.skin.apply();
 await tick(60);
+
+G("AZ 诊断串要带皮肤几何（真机报「侧栏错乱」时我需要的数字）");
+B.settings.desktopSkin = false; B.skin.apply(); await tick(60);
+B.douyin.enter();
+await tick(400);
+const diagOffAZ = B.douyin.diag ? B.douyin.diag() : "";
+ok("皮肤关闭时：诊断串有内容、且不带皮肤段（不噪音）",
+  String(diagOffAZ).length > 10 && diagOffAZ.indexOf("皮肤") < 0, JSON.stringify(String(diagOffAZ).slice(0, 90)));
+B.settings.desktopSkin = true; B.skin.apply();
+const hdrAZ = doc.createElement("div"); hdrAZ._s.add("bili-header__bar");
+hdrAZ.getBoundingClientRect = () => ({ top: 0, left: 0, width: 200, height: 800, right: 200, bottom: 800 });
+doc.body.appendChild(hdrAZ);
+const chAZ = doc.createElement("div"); chAZ._s.add("bili-header__channel");
+chAZ.getBoundingClientRect = () => ({ top: 0, left: 200, width: 1080, height: 87, right: 1280, bottom: 87 });
+doc.body.appendChild(chAZ);
+B.skin.syncChannelH();
+const diagOnAZ = B.douyin.diag ? B.douyin.diag() : "";
+ok("皮肤开启时诊断串里带皮肤段，且含侧栏/频道条/搜索/变量/入口按钮",
+  /皮肤 侧栏=200x800@0,0/.test(String(diagOnAZ)) && /频道条=1080x87@200,0/.test(String(diagOnAZ)) &&
+  /频道条高变量=87px/.test(String(diagOnAZ)) && /入口按钮=/.test(String(diagOnAZ)),
+  JSON.stringify(String(diagOnAZ).slice(-140)));
+hdrAZ.remove(); chAZ.remove();
+B.settings.desktopSkin = false; B.skin.apply();
+B.douyin.exit();
+await tick(60);
+ok("AZ 组收尾：退出干净", B.douyin.isActive() === false);
 
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
