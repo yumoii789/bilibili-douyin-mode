@@ -301,8 +301,13 @@ html.bdm-skin ::-webkit-scrollbar-track { background: transparent; }
   html.bdm-skin .right-channel-container { max-width: calc(100% - 320px) !important; }
   html.bdm-skin .channel-items__left { max-width: 100% !important; flex-wrap: wrap !important; }
 
+  /* B站 网页右侧那组入口（专栏/活动/社区中心/直播/课堂/新歌热榜）与我们固定在右上的搜索框重叠。
+     我第一版直接 `display:none` 隐藏 —— 那是**静默删掉功能入口** ✗，不对。
+     改成「保留、换到自己一行」：容器换行，两组各占一行；顶栏变高后 body 的让位由 syncChannelH 自动跟上。 */
+  html.bdm-skin .right-channel-container { flex-wrap: wrap !important; }
+  html.bdm-skin .channel-items__left { order: 1 !important; }
   html.bdm-skin .channel-items__right,
-  html.bdm-skin .channel-link__right { display: none !important; }
+  html.bdm-skin .channel-link__right { order: 2 !important; flex-basis: 100% !important; display: flex !important; }
 
   html.bdm-skin .bili-header__channel { order: 1 !important; }
   html.bdm-skin .bili-header__banner { order: 2 !important; }
@@ -323,7 +328,7 @@ html.bdm-skin ::-webkit-scrollbar-track { background: transparent; }
   }
   /* 搜索框：从侧栏搬到顶部工具条右侧（客户端就是这样） */
   html.bdm-skin .center-search-container.menu-center {
-    position: fixed !important; top: 8px !important; right: 260px !important; left: auto !important;
+    position: fixed !important; top: 8px !important; right: 20px !important; left: auto !important;   /* 放最右：胶囊由 padding-right 限制，两者不再相交（之前放 260 是我为躲重叠做的临时位移） */
     width: 200px !important; height: 40px !important; max-height: 40px !important; margin: 0 !important;
     order: 0 !important; z-index: 10001;
   }
