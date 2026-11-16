@@ -1,0 +1,25 @@
+# 启用 CI：把本文件内容复制到 .github/workflows/ci.yml 即可。
+# （GitHub 要求 .github/workflows/ 下的文件必须用带 workflow 权限的令牌提交；
+#   细粒度 PAT 默认没有该权限，所以这里以 .txt 形式随仓库分发，你在网页端贴一次即可。）
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # 三个套件：装包前自检（manifest/引用/语法/i18n/版本一致）+ 逻辑断言 + 扩展页面
+      # 行为套件不访问网络，所以 CI 里稳定可跑
+      - name: 跑全部套件
+        run: node test/run-all.mjs

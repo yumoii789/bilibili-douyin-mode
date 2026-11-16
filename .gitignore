@@ -7,6 +7,9 @@ test/skin-preview.html
 test/skin-preview-video.html
 test/bili-overlay-preview.html
 
+# ---- 临时文件（用「git add -A」时最容易误扫进来的一类）
+.tmp*
+
 # ---- 系统与编辑器
 Thumbs.db
 .DS_Store

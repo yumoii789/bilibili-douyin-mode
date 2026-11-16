@@ -26,7 +26,7 @@
 node test/run-all.mjs        # 三个套件：装包前自检 + 逻辑断言 + 扩展页面
 ```
 
-（行为套件不访问网络，所以本地与 CI 结果一致。仓库里已备好 `.github/workflows/ci.yml`；把它推上去需要带 **workflow** 权限的令牌或走 GitHub 网页端 —— 细粒度 PAT 默认没有该权限。）
+（行为套件不访问网络，所以本地与 CI 结果一致。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
 
 真渲染自检（在浏览器里打开，页面会自己打印检查结果）：
 
