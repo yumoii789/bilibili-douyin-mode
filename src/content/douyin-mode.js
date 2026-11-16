@@ -851,6 +851,27 @@ window.__BDM__ = window.__BDM__ || {};
       if (!S.get().longpressRate || held < 300) openCtxMenu(rec, e.clientX || 0, e.clientY || 0);
     });
 
+    // 单击画面 = 播放/暂停（所有播放器的通例，也给空格键配了个鼠标对应物）。
+    // 三点说明：①右键长按倍速走的是 button 2，左键本来是空的，互不干扰；
+    //           ②弹幕层是 pointer-events:none，所以点画面能落到 videoArea；
+    //           ③有面板/菜单开着时，这一下先用来收面板（B站 同样是「点画面收面板」），不改变播放状态。
+    built.videoArea.addEventListener("click", function (e) {
+      if (e.target !== built.videoArea && e.target !== player.video) return;   // 只认点画面本身
+      if (rec !== slides[idx]) return;                                        // 非当前屏不响应
+      var openEl = [built.panel, built.seasonList, built.ctxMenu].some(function (el) {
+        return el && el.style && el.style.display && el.style.display !== "none";
+      });
+      if (openEl) {
+        // 评论面板不在 closePanels 的名单里（它是 built.panel，靠 toggleComments 收）——
+        // 我第一版只调了 closePanels，于是「面板开着点画面」这条断言红了：面板没关。
+        var cmt = built.panel && built.panel.style && built.panel.style.display && built.panel.style.display !== "none";
+        if (cmt) toggleComments(rec, true);
+        closePanels(built);
+        return;
+      }
+      player.toggle();
+    });
+
     // 弹幕输入框：B站 桌面版操作条同款入口。回车即发（走 /x/v2/dm/post，纯用户显式操作）；
     // 失败时如实报因并保留内容，另给「复制 + 打开原页」的出口。
     c.dmInput.addEventListener("keydown", function (e) {

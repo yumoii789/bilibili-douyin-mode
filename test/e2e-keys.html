@@ -54,11 +54,20 @@ window.onerror = function (m, s, l, c) { var p = document.getElementById("m"); i
   var vid = function () { var s = cur(); return s ? s.querySelector("video") : null; };
   var state = function (tag) {
     var v = vid() || {};
+    var ep = function (x, y) { var el = document.elementFromPoint(x, y); return el ? ((el.className || el.tagName) + "").slice(0, 24) : "无"; };
+    log("命中(640,250)=" + ep(640, 250) + "  命中(640,400)=" + ep(640, 400));
     log(tag + " t=" + (Math.round((v.currentTime || 0) * 10) / 10) + " vol=" + (v.volume === undefined ? "?" : v.volume) +
-        " fs=" + (document.fullscreenElement ? "on" : "off") + " dm=" + (window.__BDM__.settings.get().dmEnabled ? "on" : "off"));
+        " fs=" + (document.fullscreenElement ? "on" : "off") + " dm=" + (window.__BDM__.settings.get().dmEnabled ? "on" : "off") + " paused=" + (v.paused === undefined ? "?" : v.paused));
   };
   (async function () {
     try {
+      // 包 Player.prototype.toggle（与具体 video 实例无关）：点击路径最终就是调它，
+      // 这样即使 overlay 重挂了 video，也能证明「点击真的走到了切换逻辑」。
+      var P0 = window.__BDM__.Player;
+      if (P0 && P0.prototype && P0.prototype.toggle) {
+        var T0 = P0.prototype.toggle;
+        P0.prototype.toggle = function () { log("→ toggle() 被调用"); return T0.apply(this, arguments); };
+      }
       window.__BDM__.douyin.enter();
       await tick(900);
       var v = vid();
@@ -66,6 +75,12 @@ window.onerror = function (m, s, l, c) { var p = document.getElementById("m"); i
       Object.defineProperty(v, "duration", { value: 300, configurable: true });
       v.currentTime = 100;
       v.volume = 0.8;
+      // 桩环境里视频没有真流，play() 起不来 → paused 不会变；改为记录「谁调用了 play/pause」，
+      // 这才能证明「点击真的走到了切换逻辑」。
+      ["play", "pause"].forEach(function (k) {
+        var orig = v[k] ? v[k].bind(v) : function () {};
+        v[k] = function () { log("→ 调用 video." + k + "()"); try { return orig(); } catch (e) { return undefined; } };
+      });
       log("准备：视口 " + window.innerWidth + "x" + window.innerHeight + "  时长打桩=300s  起始 t=100 vol=0.8");
       state("基线");
       // 之后每 0.7 秒报一次状态，外部按真键后我读控制台即可

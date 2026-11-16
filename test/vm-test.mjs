@@ -2591,6 +2591,43 @@ B.douyin.exit();
 await tick(60);
 ok("BB 组收尾：退出干净", B.douyin.isActive() === false);
 
+G("BC 单击画面 = 播放/暂停（此前只有控制条按钮与空格键）");
+B.douyin.enter();
+await tick(400);
+const rootBC = doc.querySelector(".bdm-root");
+const sBC = () => doc.querySelectorAll(".bdm-slide")[Math.round(rootBC.scrollTop / 800)];
+const areaBC = () => sBC().querySelector(".bdm-video-area");
+const vBC = () => sBC().querySelector("video");
+const clickAreaBC = (target) => areaBC().dispatchEvent({ type: "click", target: target || areaBC() });
+// 先置为播放中，再点画面 → 应暂停
+vBC().play();
+await tick(120);
+ok("前置：当前是播放中", vBC().paused === false, "paused=" + vBC().paused);
+clickAreaBC();
+await tick(120);
+ok("单击画面 → 暂停", vBC().paused === true, "paused=" + vBC().paused);
+clickAreaBC();
+await tick(120);
+ok("再单击 → 继续播放", vBC().paused === false, "paused=" + vBC().paused);
+// 点弹幕层（pointer-events:none，实际浏览器里点不到；测试直接派发它的 click 也不该触发切换）
+clickAreaBC(sBC().querySelector(".bdm-dmlayer"));
+await tick(100);
+ok("点在弹幕层上的事件不当作「点画面」（只认 videoArea/video 本身）", vBC().paused === false, "paused=" + vBC().paused);
+// 有面板开着 → 这一下先收面板，且不改播放状态
+sBC().querySelector(".bdm-btn-cmt").dispatchEvent({ type: "click" });
+await tick(300);
+const panelBC = sBC().querySelector(".bdm-panel");
+ok("前置：评论面板已打开", panelBC.style.display !== "none", "display=" + JSON.stringify(panelBC.style.display));
+const pausedBeforeBC = vBC().paused;
+clickAreaBC();
+await tick(200);
+ok("面板开着时点画面 → 收起面板，且**不改变**播放状态",
+  panelBC.style.display === "none" && vBC().paused === pausedBeforeBC,
+  "display=" + JSON.stringify(panelBC.style.display) + " paused " + pausedBeforeBC + "→" + vBC().paused);
+B.douyin.exit();
+await tick(60);
+ok("BC 组收尾：退出干净", B.douyin.isActive() === false);
+
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
 
