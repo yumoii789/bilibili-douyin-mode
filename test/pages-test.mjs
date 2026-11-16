@@ -192,9 +192,10 @@ ok("皮肤：侧栏图标把 color 收回并跟随文字色（只改 fill 无效
   /\.left-entry__item-trigger svg path[^{]*\{[^}]*color:\s*inherit\s*!important[^}]*fill:\s*currentColor/.test(skinFlat));
 
 // 「完全接管」层（§96）：隐藏网页特有元素、头部重排、频道条吸顶、胶囊限宽
-ok("皮肤：接管层——隐藏 footer 与网页特有入口",
+ok("皮肤：接管层——隐藏的是网页 chrome（footer/广告/分隔线），**不隐藏功能入口**",
   /footer,[\s\S]{0,200}display:\s*none\s*!important/.test(skinFlat) &&
-  /\.channel-items__right,[\s\S]{0,80}\.channel-link__right\s*\{\s*display:\s*none/.test(skinFlat));
+  /\.channel-items__right,[\s\S]{0,80}\.channel-link__right\s*\{\s*order:\s*2\s*!important;\s*flex-basis:\s*100%/.test(skinFlat) &&
+  !/\.channel-items__right,[\s\S]{0,80}\.channel-link__right\s*\{\s*display:\s*none/.test(skinFlat));
 ok("皮肤：接管层——头部竖排 + 频道条在 banner 之前（order）",
   /\.bili-header\s*\{\s*display:\s*flex\s*!important[\s\S]{0,80}flex-direction:\s*column/.test(skinFlat) &&
   /\.bili-header__channel\s*\{\s*order:\s*1\s*!important/.test(skinFlat));
