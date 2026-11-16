@@ -105,6 +105,15 @@
     L.push("用户区是否在首屏内=" + (reR && barR ? (reR.bottom <= barR.bottom + 1 ? "是" : "否（被挤出，需要滚动侧栏）") : "无"));
     var ch = R(q(".bili-header__channel")), sc2 = R(q(".center-search-container")), re = R(q(".right-entry"));
     L.push("顶部工具条 频道行 " + (ch ? Math.round(ch.left) + "," + Math.round(ch.top) + " " + Math.round(ch.width) + "x" + Math.round(ch.height) : "无") + " | 搜索 " + (sc2 ? Math.round(sc2.right - sc2.width) + "," + Math.round(sc2.top) + " " + Math.round(sc2.width) + "x" + Math.round(sc2.height) : "无") + " | 用户区 " + (re ? Math.round(re.right) + " 宽" + Math.round(re.width) : "无"));
+    // 频道两组与右上搜索框是否相交（两组都要测：我第一版只测了右组，漏掉了「胶囊尾部被搜索框压住」）
+    var scR = q(".center-search-container") ? q(".center-search-container").getBoundingClientRect() : null;
+    [["左组", q(".channel-items__left")], ["右组", q(".channel-items__right")]].forEach(function (pair) {
+      var b = pair[1] ? pair[1].getBoundingClientRect() : null;
+      if (!b || !scR || b.width === 0) return;
+      var hit = !(b.right < scR.left || b.left > scR.right || b.bottom < scR.top || b.top > scR.bottom);
+      L.push("  频道" + pair[0] + " " + Math.round(b.width) + "x" + Math.round(b.height) + "@" + Math.round(b.left) + "," + Math.round(b.top) + " 与搜索框相交=" + hit);
+      if (SKIN && hit) bad.push("频道" + pair[0] + "与搜索框相交");
+    });
     var de = document.documentElement; L.push("横向溢出=" + (de.scrollWidth - de.clientWidth) + "px");
     // 判定：行高必须一致（我们注入的按钮不在这个统计里，它由真扩展注入）
     if (SKIN) {
@@ -129,6 +138,8 @@
         // 内容从固定条下方穿过是**正常**的（客户端同样如此）；原先我拿「内容容器」当判据是错的，
         // 容器本来就会随页面滚走 → 那条判据只会制造假警报。真正该判的是「条自己有没有吸住」（上面两条）。
         console.log("[滚动检查] " + msg + " → " + (bad2.length ? "FAIL：" + bad2.join("/") : "PASS：三者仍对齐"));
+        // 量完滚回顶部：否则之后任何截图都停在滚动后的位置（我为此困惑过一轮）
+        window.scrollTo(0, 0);
       }, 260);
     }, 1500);
     L.forEach(function (x) {
