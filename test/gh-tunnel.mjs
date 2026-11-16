@@ -92,11 +92,17 @@ async function findHosts(cidrs, need) {
   return found;
 }
 
+// 缓存要带版本：第一版把 api 专用 IP 也写进了 github.com 列表，
+// 结果下次启动用它去连 github.com → TLS 握手失败（schannel SEC_E_INVALID_TOKEN）✗。
+const CACHE_V = 2;
 function readCache() {
-  try { const j = JSON.parse(fs.readFileSync(CACHE, "utf8")); if (Array.isArray(j.gh) && j.gh.length) return j.gh; } catch (e) {}
+  try {
+    const j = JSON.parse(fs.readFileSync(CACHE, "utf8"));
+    if (j && j.v === CACHE_V && Array.isArray(j.gh) && j.gh.length) return j.gh;
+  } catch (e) {}
   return [];
 }
-function writeCache(gh) { try { fs.writeFileSync(CACHE, JSON.stringify({ gh, at: Date.now() }), "utf8"); } catch (e) {} }
+function writeCache(gh) { try { fs.writeFileSync(CACHE, JSON.stringify({ v: CACHE_V, gh, at: Date.now() }), "utf8"); } catch (e) {} }
 
 const cached = readCache();
 let GH = cached.length ? cached : SEED.slice();
