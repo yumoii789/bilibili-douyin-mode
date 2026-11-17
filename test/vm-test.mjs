@@ -156,6 +156,9 @@ let rcmdFails = false;       // 只给「首次加载失败」用例用：让推
 let playurlFails = false;    // 只给「切档失败」用例用：让取流接口失败
 let replyFailsOnce = false;  // 只给「评论重试」用例用：第 1 次翻页失败，第 2 次成功
 let onlineDelayMs = 0;       // 只给「在线人数竞态」用例用：让响应迟到
+let writeDelayMs = 0;        // 只给「在途写操作 + 退出/切屏」用例用：让写响应迟到
+// 只延迟「成功」的响应：失败路径要立刻返回，免得把两种场景混在一起
+const slow = (p) => (writeDelayMs > 0 && p && p.code === 0) ? new Promise((res) => setTimeout(() => res(p), writeDelayMs)) : p;
 const RCMD = { code: 0, data: { item: Array.from({ length: 12 }, (_, i) => ({
   bvid: "BV1test000" + i, cid: 990 + i, aid: 10000 + i, goto: "av",
   title: "测试视频 " + i, pic: "//i0.hdslb.com/x.jpg", duration: 125,
@@ -199,9 +202,9 @@ const srv = {
     return { code: 0, data: { page: { num: pn, size: 20, count: count }, replies: [
       { member: { uname: pn === 1 ? "甲" : "乙", avatar: "f.jpg" }, content: { message: pn === 1 ? "好" : "第二页的评论" },
         like: 3, rcount: pn === 1 ? 1 : 0, ctime: 1e9 }] } }; },
-  "archive/like": () => (likeCode ? { code: likeCode, message: "被风控拦截" } : { code: 0, data: {} }),
-  "coin/add": () => (coinCode ? { code: coinCode, message: "硬币不足" } : { code: 0, data: {} }),
-  "fav/resource/deal": () => (favDealCode ? { code: favDealCode, message: "收藏夹满了" } : { code: 0, data: {} }),
+  "archive/like": () => slow(likeCode ? { code: likeCode, message: "被风控拦截" } : { code: 0, data: {} }),
+  "coin/add": () => slow(coinCode ? { code: coinCode, message: "硬币不足" } : { code: 0, data: {} }),
+  "fav/resource/deal": () => slow(favDealCode ? { code: favDealCode, message: "收藏夹满了" } : { code: 0, data: {} }),
   "fav/folder/created/list-all": () => ({ code: 0, data: { list: [
     { id: 1, title: "默认收藏夹", media_count: 2, favoured: true },
     { id: 2, title: "测试收藏夹", media_count: 0, favoured: false }] } }),
@@ -241,7 +244,7 @@ const srv = {
     goto: "av", title: pn === 2 ? "热门兜底视频" : ("热门兜底视频 " + pn), duration: 60, pic: "",
     owner: { mid: 88, name: "热门UP" }, stat: { view: 5, like: 1, danmaku: 1, reply: 1, coin: 0, favorite: 0, share: 0 }, tname: "热门"
   }] } }; },
-  "x/v2/dm/post": () => (dmPostCode ? { code: dmPostCode, message: "被风控拦截" } : { code: 0, data: { dmid: 1234 } }),
+  "x/v2/dm/post": () => slow(dmPostCode ? { code: dmPostCode, message: "被风控拦截" } : { code: 0, data: { dmid: 1234 } }),
   "related": () => (feedSourcesDry ? { code: 0, data: [] } : { code: 0, data: [] })
 };
 // 兜底源枯竭开关：只有「所有源都无新内容」那条用例会临时打开它，
@@ -2686,6 +2689,63 @@ ok("鼠标离开 → 气泡隐藏", tipBD().style.display === "none", "display="
 B.douyin.exit();
 await tick(60);
 ok("BD 组收尾：退出干净", B.douyin.isActive() === false);
+
+G("BE 在途写操作遇到退出 / 切屏：不得弹幽灵提示、不得抛异常、回来还能用");
+// 与「在线人数迟到响应」同一类风险（§91）。写操作还多一层：它会在完成时弹 toast、改按钮态，
+// 而那时那一屏可能已经被拆掉了。
+B.douyin.enter();
+await tick(400);
+doc.cookie = "SESSDATA=abc; bili_jct=xyz; DedeUserID=42";
+B.settings.allowExplicitLike = true;
+// ⚠️ 必须每次现取：本组跨越一次 exit/enter，第一段抓到的 root 早就被移除了（我第一版就是
+// 抓着旧 root 量 scrollTop，于是「切屏没生效」的假红——屏数其实在涨，是产品没问题）。
+const rootBE = () => doc.querySelector(".bdm-root");
+const sBE = () => doc.querySelectorAll(".bdm-slide")[Math.round(rootBE().scrollTop / 800)];
+const toastBE = () => { const t = doc.body._flat().filter(n => n._s.has("bdm-toast")).pop(); return t ? String(t.textContent) : ""; };
+const rejBE = rejections.length;
+writeDelayMs = 800;
+// ① 点赞在飞 → 立刻退出
+sBE().querySelector(".bdm-btn-like").dispatchEvent({ type: "click" });
+await tick(80);
+B.douyin.exit();
+await tick(60);
+ok("点赞在飞时退出 → 干净退出、无异常", B.douyin.isActive() === false && doc.querySelector(".bdm-root") === null && rejections.length === rejBE,
+  "激活=" + B.douyin.isActive() + " 拒绝+" + (rejections.length - rejBE));
+const toastAtExit = toastBE();
+await tick(1000);   // 等迟到响应到达
+ok("迟到的点赞响应不得弹出「已点赞」幽灵提示", toastBE() === toastAtExit || toastBE().indexOf("赞") < 0,
+  "退出时=" + JSON.stringify(toastAtExit.slice(0, 24)) + " 之后=" + JSON.stringify(toastBE().slice(0, 24)));
+ok("迟到响应到达后仍无未捕获拒绝", rejections.length === rejBE, "拒绝 " + rejBE + "→" + rejections.length);
+// ② 发弹幕在飞 → 立刻切到下一屏（那一屏还在，但已经不是「当前屏」）
+B.douyin.enter();
+await tick(500);
+sBE().querySelector(".bdm-dm-input").value = "在途测试";
+sBE().querySelector(".bdm-btn-dmsend").dispatchEvent({ type: "click" });
+await tick(80);
+sBE().querySelector(".bdm-btn-next").dispatchEvent({ type: "click" });   // 立刻切屏
+await tick(700);   // 换屏有动画（约 400ms），等太紧会量到 idx 还没动（我第一版 400ms 就是边界）
+const idxAfterBE = Math.round(rootBE().scrollTop / 800);
+const toastOnNext = toastBE();
+await tick(1000);
+ok("发弹幕在飞时切屏 → 仍能正常切屏、无拒绝", idxAfterBE === 1 && rejections.length === rejBE,   // 现场：scrollTop/屏数/按钮是否存在
+  "idx=" + idxAfterBE + " scrollTop=" + Math.round(rootBE().scrollTop) + " 屏数=" + doc.querySelectorAll(".bdm-slide").length + " 有下一集键=" + !!sBE().querySelector(".bdm-btn-next") + " 拒绝+" + (rejections.length - rejBE));
+// 迟到提示本身是**真实的**（用户确实发了弹幕，B站 也会迟到提示）→ 不该禁止它。
+// 真正该守的是**状态隔离**：迟到响应只能改它自己那一屏，不能动新屏的输入框/按钮态。
+ok("迟到响应不得改动**新屏**的状态：新屏输入框保持自己的内容", String(sBE().querySelector(".bdm-dm-input").value) === "",
+  "新屏输入框=" + JSON.stringify(String(sBE().querySelector(".bdm-dm-input").value)));
+// ③ 自愈：延迟撤掉后再点赞要正常
+writeDelayMs = 0;
+doc.cookie = "SESSDATA=abc; bili_jct=xyz; DedeUserID=42";
+const likeBeforeBE = calls.url.filter(u => u.indexOf("archive/like") >= 0).length;
+sBE().querySelector(".bdm-btn-like").dispatchEvent({ type: "click" });
+await tick(300);
+ok("迟到的请求之后，点赞仍然发得出去（不是「坏一次就永久坏」）",
+  calls.url.filter(u => u.indexOf("archive/like") >= 0).length > likeBeforeBE,
+  "点赞调用 " + likeBeforeBE + "→" + calls.url.filter(u => u.indexOf("archive/like") >= 0).length);
+doc.cookie = "";
+B.douyin.exit();
+await tick(60);
+ok("BE 组收尾：退出干净", B.douyin.isActive() === false);
 
 G("I 运行期异常");
 ok("无未捕获 Promise 拒绝", rejections.length === 0, rejections.slice(0, 3).join(" ;; "));
