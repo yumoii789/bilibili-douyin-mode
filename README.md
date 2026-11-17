@@ -23,13 +23,13 @@
 ## 验证
 
 ```bash
-npm test                     # 等价于 node test/run-all.mjs：装包前自检 + 逻辑断言 + 扩展页面
+npm test                     # 等价于 node test/run-all.mjs：装包前自检 + 装载顺序/全局冲突 + 逻辑断言 + 扩展页面
 npm run preflight            # 只跑装包前自检（manifest/引用/语法/i18n/版本一致/CI 配置）
 ```
 
 无运行时依赖、无构建步骤（`npm install` 不需要执行）。
 
-（行为套件不访问网络，且**不依赖任何未入库文件** —— 想等价验证 CI，做一次干净克隆再跑同一条命令即可：`git clone . /tmp/x && cd /tmp/x && node test/run-all.mjs`，本仓库实测 3/3 通过。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
+（行为套件不访问网络，且**不依赖任何未入库文件** —— 想等价验证 CI，做一次干净克隆再跑同一条命令即可：`git clone . /tmp/x && cd /tmp/x && node test/run-all.mjs`，本仓库实测 4/4 通过。CI 配置放在 `docs/ci.yml.txt`：把它的内容贴到 `.github/workflows/ci.yml` 即启用 —— GitHub 要求该目录下的文件必须由带 **workflow** 权限的令牌提交，细粒度 PAT 默认没有。）
 
 真渲染自检（在浏览器里打开，页面会自己打印检查结果）：
 
@@ -41,6 +41,7 @@ npm run preflight            # 只跑装包前自检（manifest/引用/语法/i1
 | `test/e2e-long.html` | 长会话资源上界（连推 30 屏） |
 | `test/e2e-fullscreen.html` | 全屏 + Esc 交互 |
 | `test/e2e-keys.html` | 键盘快捷键（CDP **可信按键** + 真实 currentTime/volume/全屏状态） |
+| `test/e2e-boot.html` | 装载自检（Chrome 桩 + 六脚本按 manifest 序真装 + 皮肤/进流探针，结果打在页内 `<pre id="m">`）；注意装载顺序/全局冲突已由 `boot-test.mjs` 离线常驻守住，此页是**真浏览器**的补充印证 |
 
 皮肤预览页由**抓取到的页面快照**生成（生成物不入库，避免分发 B站 页面结构）：
 
